@@ -6,106 +6,44 @@
     <title>EOCO | Tools Hub</title>
     <style>
         :root { --evergreen: #2d5a27; --dark: #1a1a1a; --border-gray: #ddd; }
-        body { font-family: sans-serif; background-color: #f4f4f9; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; color: var(--dark); }
-        
+        body { font-family: sans-serif; background-color: #f4f4f9; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; color: var(--dark); margin: 0; }
         .header { text-align: center; margin-bottom: 40px; }
-        h1 { margin: 0; font-size: 2.5rem; font-weight: 800; }
-        .sub-brand { color: var(--evergreen); font-weight: bold; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
-
-        /* Steam Library Style Grid */
-        .hub-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-            gap: 20px; 
-            max-width: 900px; 
-            width: 100%; 
-        }
-
-        .tool-card {
-            background: white;
-            border: 2px solid var(--border-gray);
-            border-radius: 12px;
-            padding: 25px;
-            text-align: center;
-            transition: transform 0.2s, border-color 0.2s;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-
-        .tool-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--evergreen);
-            box-shadow: 0 8px 24px rgba(45, 90, 39, 0.15);
-        }
-
-        .tool-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            color: var(--evergreen);
-        }
-
+        h1 { margin: 0; font-size: 2.2rem; font-weight: 800; }
+        .sub-brand { color: var(--evergreen); font-weight: bold; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+        .hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 900px; width: 100%; }
+        .tool-card { background: white; border: 2px solid var(--border-gray); border-radius: 12px; padding: 25px; text-align: center; transition: 0.2s; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-decoration: none; color: inherit; }
+        .tool-card:hover { transform: translateY(-5px); border-color: var(--evergreen); box-shadow: 0 8px 24px rgba(45, 90, 39, 0.15); }
+        .tool-icon { font-size: 3rem; margin-bottom: 15px; color: var(--evergreen); }
         .tool-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 10px; }
-        .tool-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; line-height: 1.4; }
-
-        .btn-launch {
-            background: var(--dark);
-            color: white;
-            padding: 12px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 0.9rem;
-            transition: background 0.2s;
-        }
-
+        .tool-desc { font-size: 0.85rem; color: #666; margin-bottom: 20px; line-height: 1.4; }
+        .btn-launch { background: var(--dark); color: white; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; transition: 0.2s; }
         .tool-card:hover .btn-launch { background: var(--evergreen); }
-
-        .footer { margin-top: 60px; font-size: 0.8rem; color: #999; text-align: center; }
+        .footer { margin-top: 60px; font-size: 0.75rem; color: #999; text-align: center; }
     </style>
 </head>
 <body>
-
     <div class="header">
         <h1>EOCO</h1>
         <div class="sub-brand">Simple Systems Tool Hub</div>
     </div>
-
     <div class="hub-grid">
-        <div class="tool-card" onclick="location.href='/newcalculator/'">
+        <a href="/newcalculator/" class="tool-card">
             <div>
                 <div class="tool-icon">📊</div>
                 <div class="tool-title">Real-Cost Calculator</div>
-                <div class="tool-desc">Calculate the true hourly burden of employees, including NS taxes and benefits.</div>
+                <div class="tool-desc">Calculate the true hourly burden of employees, including Nova Scotia taxes and benefits.</div>
             </div>
-            <a href="/newcalculator/" class="btn-launch">LAUNCH APP</a>
-        </div>
-
-        <div class="tool-card" onclick="location.href='/breakeven/'">
+            <div class="btn-launch">LAUNCH APP</div>
+        </a>
+        <a href="/breakeven/" class="tool-card">
             <div>
                 <div class="tool-icon">📉</div>
                 <div class="tool-title">Job-Site Break-Even</div>
                 <div class="tool-desc">Determine your minimum hourly "floor price" to cover overhead and take-home pay.</div>
             </div>
-            <a href="/breakeven/" class="btn-launch">LAUNCH APP</a>
-        </div>
-
-        <div class="tool-card" style="opacity: 0.6; cursor: default;">
-            <div>
-                <div class="tool-icon">⏳</div>
-                <div class="tool-title">Tax Sidestepper</div>
-                <div class="tool-desc">Coming Soon: Instantly calculate tax and savings holdbacks from every check.</div>
-            </div>
-            <div class="btn-launch" style="background: #ccc;">DEVELOPMENT...</div>
-        </div>
+            <div class="btn-launch">LAUNCH APP</div>
+        </a>
     </div>
-
-    <div class="footer">
-        © 2026 EOCO - Nova Scotia<br>
-        Simple Systems. Better Business.
-    </div>
-
+    <div class="footer">© 2026 EOCO - Nova Scotia</div>
 </body>
 </html>

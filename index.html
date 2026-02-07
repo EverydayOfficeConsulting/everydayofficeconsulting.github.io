@@ -3,55 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Field Intake Portal</title>
+    <title>EOCO | Tools Library</title>
     <style>
-        :root { --brand: #2d5a27; --bg: #f4f4f9; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 10px; margin: 0; display: flex; justify-content: center; }
-        .card { background: white; padding: 25px; border-radius: 16px; border: 4px solid var(--brand); max-width: 480px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
-        h1 { margin: 0; font-size: 1.6rem; font-weight: 900; }
-        .sub { font-size: 0.75rem; color: #666; margin-bottom: 25px; text-transform: uppercase; font-weight: bold; }
-        label { display: block; font-weight: 800; font-size: 0.65rem; color: #444; margin-bottom: 6px; text-transform: uppercase; text-align: left; }
-        input, select, textarea { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; box-sizing: border-box; }
-        .line-item { background: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 12px; border-left: 6px solid var(--brand); margin-bottom: 12px; position: relative; text-align: left; }
-        .btn { border: none; padding: 16px; border-radius: 10px; width: 100%; font-weight: 800; cursor: pointer; font-size: 0.95rem; margin-top: 10px; }
-        .btn-green { background: var(--brand); color: white; }
-        .btn-outline { background: white; border: 3px solid var(--brand); color: var(--brand); }
+        :root { --evergreen: #2d5a27; --dark: #1a1a1a; --bg: #f4f4f9; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 40px 20px; margin: 0; }
+        
+        .header { text-align: center; margin-bottom: 50px; }
+        h1 { margin: 0; font-size: 2.5rem; font-weight: 900; color: var(--dark); letter-spacing: -1px; }
+        .sub-brand { color: var(--evergreen); font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* Steam Library Style Grid */
+        .hub-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 25px; 
+            max-width: 1000px; 
+            width: 100%; 
+        }
+
+        .tool-card { 
+            background: white; 
+            border: 2px solid transparent; 
+            border-radius: 20px; 
+            padding: 30px; 
+            text-align: center; 
+            transition: all 0.3s ease; 
+            text-decoration: none; 
+            color: inherit; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .tool-card:hover { 
+            transform: translateY(-10px); 
+            border-color: var(--evergreen); 
+            box-shadow: 0 20px 40px rgba(45, 90, 39, 0.15); 
+        }
+
+        .tool-icon { font-size: 3.5rem; margin-bottom: 20px; }
+        .tool-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 10px; color: var(--dark); }
+        .tool-desc { font-size: 0.85rem; color: #666; line-height: 1.5; margin-bottom: 25px; }
+
+        .btn-launch { 
+            background: var(--dark); 
+            color: white; 
+            padding: 12px; 
+            border-radius: 10px; 
+            font-weight: 800; 
+            font-size: 0.8rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            transition: 0.2s;
+        }
+
+        .tool-card:hover .btn-launch { background: var(--evergreen); }
+        
+        .footer { margin-top: 80px; font-size: 0.75rem; color: #999; text-align: center; font-weight: 600; }
     </style>
 </head>
 <body>
-<div class="card">
-    <h1>Field Intake</h1>
-    <div class="sub">Job Data Transmission</div>
-    <label>Customer Name</label><input type="text" id="custName">
-    <label>Job Ref #</label><input type="text" id="jobRef">
-    <div id="itemsList"></div>
-    <button class="btn btn-outline" onclick="addItem()">+ ADD SERVICE/ITEM</button>
-    <label style="margin-top:20px;">Site Notes</label><textarea id="notes" rows="3"></textarea>
-    <button class="btn btn-green" onclick="submitToOffice()">SUBMIT TO OFFICE</button>
-</div>
-<script>
-    let INVENTORY = JSON.parse(localStorage.getItem('eoco_inventory')) || [{name:"Standard Labor", price:75}];
-    function addItem() {
-        const div = document.createElement('div');
-        div.className = 'line-item';
-        let options = INVENTORY.map((item, i) => `<option value="${i}">${item.name}</option>`).join('');
-        div.innerHTML = `<label>Work Performed</label><select class="i-sel">${options}</select><label>Quantity</label><input type="number" class="q-inp" value="1" step="0.25">`;
-        document.getElementById('itemsList').appendChild(div);
-    }
-    function submitToOffice() {
-        const name = document.getElementById('custName').value;
-        const ref = document.getElementById('jobRef').value;
-        let summary = "";
-        let csv = "*InvoiceNo,*Customer,Item,Quantity,Rate\n";
-        document.querySelectorAll('.line-item').forEach(row => {
-            const item = INVENTORY[row.querySelector('.i-sel').value];
-            const qty = row.querySelector('.q-inp').value;
-            summary += `- ${item.name} x ${qty}\n`;
-            csv += `${ref},${name},"${item.name}",${qty},${item.price}\n`;
-        });
-        const body = `NEW JOB DATA\n\nCustomer: ${name}\nRef: ${ref}\n\nServices:\n${summary}\n\n--- CSV DATA ---\n${csv}`;
-        window.location.href = `mailto:office@eoco.ca?subject=Field Data: ${name}&body=${encodeURIComponent(body)}`;
-    }
-</script>
+
+    <div class="header">
+        <h1>EOCO</h1>
+        <div class="sub-brand">Simple Systems Tool Library</div>
+    </div>
+
+    <div class="hub-grid">
+        <a href="/fieldintake/" class="tool-card">
+            <div>
+                <div class="tool-icon">📲</div>
+                <div class="tool-title">Field Intake</div>
+                <div class="tool-desc">Simplified job capture for contractors. Send data directly to the office via email.</div>
+            </div>
+            <div class="btn-launch">Open Portal</div>
+        </a>
+
+        <a href="/projectquote/" class="tool-card">
+            <div>
+                <div class="tool-icon">📝</div>
+                <div class="tool-title">Quote Master</div>
+                <div class="tool-desc">The professional proposal engine. Generate client PDFs and QuickBooks import files.</div>
+            </div>
+            <div class="btn-launch">Open Quoter</div>
+        </a>
+
+        <a href="/newcalculator/" class="tool-card">
+            <div>
+                <div class="tool-icon">📊</div>
+                <div class="tool-title">Cost Calculator</div>
+                <div class="tool-desc">Calculate true hourly employee burden including Nova Scotia provincial taxes.</div>
+            </div>
+            <div class="btn-launch">Open Calculator</div>
+        </a>
+    </div>
+
+    <div class="footer">© 2026 EVERYDAY OFFICE CONSULTING - NOVA SCOTIA</div>
+
 </body>
 </html>

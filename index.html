@@ -4,165 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Field Intake Portal</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        :root { --brand: #2d5a27; --dark: #1a1a1a; --bg: #f4f4f9; }
+        :root { --brand: #2d5a27; --bg: #f4f4f9; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 10px; margin: 0; display: flex; justify-content: center; }
-        .card { background: white; padding: 25px; border-radius: 16px; border: 4px solid var(--brand); max-width: 500px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
-        
-        h1 { margin: 0; font-size: 1.6rem; font-weight: 900; color: var(--dark); }
-        .sub { font-size: 0.75rem; color: #666; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
-        
-        /* Collapsible Setup for Admin */
-        .admin-toggle { font-size: 0.65rem; color: #999; cursor: pointer; text-decoration: underline; margin-bottom: 20px; display: block; }
-        #adminPanel { display: none; background: #eee; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left; }
-
-        .form-group { background:#f9f9f9; border:1px solid #ddd; padding:15px; border-radius:12px; margin-bottom:20px; text-align: left; }
-        label { display: block; margin: 10px 0 4px; font-weight: 700; font-size: 0.65rem; color: #555; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 14px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; box-sizing: border-box; margin-bottom: 10px; }
-        
-        .line-item { background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 12px; position: relative; text-align: left; border-left: 6px solid var(--brand); }
-        .remove-btn { position: absolute; top: 10px; right: 12px; color: #d32f2f; cursor: pointer; font-weight: 900; border: none; background: none; }
-        
-        .btn { border: none; padding: 16px; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 0.95rem; width: 100%; margin-top: 10px; transition: 0.2s; }
+        .card { background: white; padding: 25px; border-radius: 16px; border: 4px solid var(--brand); max-width: 480px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
+        h1 { margin: 0; font-size: 1.6rem; font-weight: 900; }
+        .sub { font-size: 0.75rem; color: #666; margin-bottom: 25px; text-transform: uppercase; font-weight: bold; }
+        label { display: block; font-weight: 800; font-size: 0.65rem; color: #444; margin-bottom: 6px; text-transform: uppercase; text-align: left; }
+        input, select, textarea { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; box-sizing: border-box; }
+        .line-item { background: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 12px; border-left: 6px solid var(--brand); margin-bottom: 12px; position: relative; text-align: left; }
+        .btn { border: none; padding: 16px; border-radius: 10px; width: 100%; font-weight: 800; cursor: pointer; font-size: 0.95rem; margin-top: 10px; }
         .btn-green { background: var(--brand); color: white; }
         .btn-outline { background: white; border: 3px solid var(--brand); color: var(--brand); }
-        
-        img.preview { max-height: 100px; margin: 10px 0; border-radius: 8px; display: none; }
     </style>
 </head>
 <body>
-
 <div class="card">
-    <div id="headerArea">
-        <img id="logoDisp" style="max-height:50px; margin-bottom:10px; display:none;">
-        <h1 id="titleDisp">Field Intake Portal</h1>
-        <div class="sub" id="bizDisp">Job Data Transmission</div>
-    </div>
-
-    <span class="admin-toggle" onclick="document.getElementById('adminPanel').style.display='block'">Admin Setup</span>
-    
-    <div id="adminPanel">
-        <label>Contractor Logo</label>
-        <input type="file" accept="image/*" onchange="saveImage(this, 'eoco_logo')">
-        <label>Company Name</label>
-        <input type="text" id="setupBiz" value="EOCO Consulting">
-        <label>Office Email for Submissions</label>
-        <input type="email" id="officeEmail" value="office@eoco.ca">
-        <label>Sync Pricing (Col A: Name | Col H: Price)</label>
-        <input type="file" accept=".csv" onchange="syncPrices(this)">
-        <button class="btn btn-green" onclick="saveAdmin()">SAVE & HIDE</button>
-    </div>
-
-    <div class="form-group">
-        <label>* Customer Name (Exactly as in QBO)</label>
-        <input type="text" id="custName" placeholder="Full Name">
-        <label>Job Ref / Invoice #</label>
-        <input type="text" id="jobRef" placeholder="e.g. 1025">
-        <label>Site Photo</label>
-        <input type="file" accept="image/*" capture="camera" onchange="previewSite(this)">
-        <img id="sitePrev" class="preview">
-    </div>
-
+    <h1>Field Intake</h1>
+    <div class="sub">Job Data Transmission</div>
+    <label>Customer Name</label><input type="text" id="custName">
+    <label>Job Ref #</label><input type="text" id="jobRef">
     <div id="itemsList"></div>
-    <button class="btn btn-outline" onclick="addItem()">+ ADD SERVICE / MATERIAL</button>
-
-    <label style="text-align:left; display:block; margin-top:20px;">Internal Job Notes</label>
-    <textarea id="notes" rows="3" placeholder="Notes for the bookkeeper..."></textarea>
-
+    <button class="btn btn-outline" onclick="addItem()">+ ADD SERVICE/ITEM</button>
+    <label style="margin-top:20px;">Site Notes</label><textarea id="notes" rows="3"></textarea>
     <button class="btn btn-green" onclick="submitToOffice()">SUBMIT TO OFFICE</button>
 </div>
-
 <script>
     let INVENTORY = JSON.parse(localStorage.getItem('eoco_inventory')) || [{name:"Standard Labor", price:75}];
-    let sitePhoto = null;
-
-    window.onload = function() {
-        if(localStorage.getItem('eoco_logo')) {
-            document.getElementById('logoDisp').src = localStorage.getItem('eoco_logo');
-            document.getElementById('logoDisp').style.display = 'inline-block';
-        }
-        if(localStorage.getItem('eoco_biz')) document.getElementById('bizDisp').innerText = localStorage.getItem('eoco_biz');
-        if(localStorage.getItem('eoco_email')) document.getElementById('officeEmail').value = localStorage.getItem('eoco_email');
-    };
-
-    function saveAdmin() {
-        localStorage.setItem('eoco_biz', document.getElementById('setupBiz').value);
-        localStorage.setItem('eoco_email', document.getElementById('officeEmail').value);
-        document.getElementById('adminPanel').style.display = 'none';
-        location.reload();
-    }
-
-    function saveImage(input, key) {
-        const reader = new FileReader();
-        reader.onload = (e) => localStorage.setItem(key, e.target.result);
-        reader.readAsDataURL(input.files[0]);
-    }
-
-    function previewSite(input) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            sitePhoto = e.target.result;
-            document.getElementById('sitePrev').src = sitePhoto;
-            document.getElementById('sitePrev').style.display = 'block';
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-
-    function syncPrices(input) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const lines = e.target.result.split('\n');
-            const newInv = [];
-            for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                if (cols.length > 7) {
-                    const name = cols[0].replace(/"/g, '').trim();
-                    const price = parseFloat(cols[7].replace(/[$,]/g, '')) || 0;
-                    if (name) newInv.push({ name, price });
-                }
-            }
-            localStorage.setItem('eoco_inventory', JSON.stringify(newInv));
-            alert("Pricing Synced!");
-        };
-        reader.readAsText(input.files[0]);
-    }
-
     function addItem() {
         const div = document.createElement('div');
         div.className = 'line-item';
-        let options = INVENTORY.sort((a,b) => a.name.localeCompare(b.name)).map((item, i) => `<option value="${i}">${item.name}</option>`).join('');
-        div.innerHTML = `<button class="remove-btn" onclick="this.parentElement.remove()">✕</button><label>Item</label><select class="i-sel">${options}</select><label>Qty</label><input type="number" class="q-inp" value="1" step="0.25">`;
+        let options = INVENTORY.map((item, i) => `<option value="${i}">${item.name}</option>`).join('');
+        div.innerHTML = `<label>Work Performed</label><select class="i-sel">${options}</select><label>Quantity</label><input type="number" class="q-inp" value="1" step="0.25">`;
         document.getElementById('itemsList').appendChild(div);
     }
-
     function submitToOffice() {
         const name = document.getElementById('custName').value;
-        const ref = document.getElementById('jobRef').value || "1001";
-        const email = document.getElementById('officeEmail').value;
-        const today = new Date().toLocaleDateString('en-GB');
-        
-        if(!name) return alert("Customer name required");
-
+        const ref = document.getElementById('jobRef').value;
         let summary = "";
-        let csv = "*InvoiceNo,*Customer,*InvoiceDate,*DueDate,Terms,Location,Memo,Item(Product/Service),ItemDescription,ItemQuantity,ItemRate,*ItemAmount,*ItemTaxCode,ItemTaxAmount\n";
-        
-        document.querySelectorAll('.line-item').forEach((row, i) => {
+        let csv = "*InvoiceNo,*Customer,Item,Quantity,Rate\n";
+        document.querySelectorAll('.line-item').forEach(row => {
             const item = INVENTORY[row.querySelector('.i-sel').value];
             const qty = row.querySelector('.q-inp').value;
-            const amt = item.price * qty;
-            summary += `- ${item.name} (Qty: ${qty})\n`;
-            
-            // Format: Christ Smith style (Parent-Child)
-            if(i === 0) {
-                csv += `${ref},${name},${today},${today},Net 30,,Field Submission,"${item.name}",,${qty},${item.price},${amt.toFixed(2)},HST,${(amt*0.14).toFixed(2)}\n`;
-            } else {
-                csv += `${ref},,,,,,,,,"${item.name}",,${qty},${item.price},${amt.toFixed(2)},HST,${(amt*0.14).toFixed(2)}\n`;
-            }
+            summary += `- ${item.name} x ${qty}\n`;
+            csv += `${ref},${name},"${item.name}",${qty},${item.price}\n`;
         });
-
-        const body = `JOB DATA SUBMISSION\n\nCustomer: ${name}\nRef: ${ref}\n\nITEMS:\n${summary}\nNOTES:\n${document.getElementById('notes').value}\n\n--- CSV DATA BLOCK ---\n${csv}`;
-        window.location.href = `mailto:${email}?subject=Job Data: ${name}&body=${encodeURIComponent(body)}`;
+        const body = `NEW JOB DATA\n\nCustomer: ${name}\nRef: ${ref}\n\nServices:\n${summary}\n\n--- CSV DATA ---\n${csv}`;
+        window.location.href = `mailto:office@eoco.ca?subject=Field Data: ${name}&body=${encodeURIComponent(body)}`;
     }
 </script>
 </body>

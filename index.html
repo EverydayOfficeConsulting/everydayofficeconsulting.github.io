@@ -3,47 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EOCO | Tools Hub</title>
+    <title>Field Intake Portal</title>
     <style>
-        :root { --evergreen: #2d5a27; --dark: #1a1a1a; --border-gray: #ddd; }
-        body { font-family: sans-serif; background-color: #f4f4f9; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; color: var(--dark); margin: 0; }
-        .header { text-align: center; margin-bottom: 40px; }
-        h1 { margin: 0; font-size: 2.2rem; font-weight: 800; }
-        .sub-brand { color: var(--evergreen); font-weight: bold; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
-        .hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 900px; width: 100%; }
-        .tool-card { background: white; border: 2px solid var(--border-gray); border-radius: 12px; padding: 25px; text-align: center; transition: 0.2s; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-decoration: none; color: inherit; }
-        .tool-card:hover { transform: translateY(-5px); border-color: var(--evergreen); box-shadow: 0 8px 24px rgba(45, 90, 39, 0.15); }
-        .tool-icon { font-size: 3rem; margin-bottom: 15px; color: var(--evergreen); }
-        .tool-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 10px; }
-        .tool-desc { font-size: 0.85rem; color: #666; margin-bottom: 20px; line-height: 1.4; }
-        .btn-launch { background: var(--dark); color: white; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; transition: 0.2s; }
-        .tool-card:hover .btn-launch { background: var(--evergreen); }
-        .footer { margin-top: 60px; font-size: 0.75rem; color: #999; text-align: center; }
+        :root { --brand: #2d5a27; --bg: #f4f4f9; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 10px; margin: 0; display: flex; justify-content: center; }
+        .card { background: white; padding: 25px; border-radius: 16px; border: 4px solid var(--brand); max-width: 480px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h1 { margin: 0 0 5px; font-size: 1.6rem; text-align: center; font-weight: 900; }
+        .sub { font-size: 0.75rem; color: #666; text-align: center; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        
+        label { display: block; font-weight: 800; font-size: 0.65rem; color: #444; margin-bottom: 6px; text-transform: uppercase; }
+        input, select, textarea { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; box-sizing: border-box; outline-color: var(--brand); }
+        
+        .item-row { background: #f9f9f9; padding: 15px; border-radius: 12px; border: 1px solid #eee; border-left: 6px solid var(--brand); margin-bottom: 12px; position: relative; }
+        .remove-btn { position: absolute; top: 8px; right: 12px; color: #d32f2f; border: none; background: none; font-weight: 900; cursor: pointer; font-size: 1.2rem; }
+        
+        .btn { border: none; padding: 16px; border-radius: 10px; width: 100%; font-weight: 800; cursor: pointer; font-size: 0.95rem; margin-top: 10px; transition: 0.2s; }
+        .btn:active { transform: scale(0.98); }
+        .btn-green { background: var(--brand); color: white; }
+        .btn-outline { background: white; border: 3px solid var(--brand); color: var(--brand); }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>EOCO</h1>
-        <div class="sub-brand">Simple Systems Tool Hub</div>
-    </div>
-    <div class="hub-grid">
-        <a href="/newcalculator/" class="tool-card">
-            <div>
-                <div class="tool-icon">📊</div>
-                <div class="tool-title">Real-Cost Calculator</div>
-                <div class="tool-desc">Calculate true hourly employee burden including Nova Scotia 2026 taxes.</div>
-            </div>
-            <div class="btn-launch">LAUNCH APP</div>
-        </a>
-        <a href="/projectquote/" class="tool-card">
-            <div>
-                <div class="tool-icon">📝</div>
-                <div class="tool-title">Quote Master</div>
-                <div class="tool-desc">Quickly generate professional project estimates with material markups and labor.</div>
-            </div>
-            <div class="btn-launch">LAUNCH APP</div>
-        </a>
-    </div>
-    <div class="footer">© 2026 EOCO - Nova Scotia</div>
-</body>
-</html>
+
+<div class="card">
+    <h1>Field Intake Portal</h1>
+    <div class="sub">Job Data Transmission</div>
+
+    <label>Customer Name</label>
+    <input type="text" id="custName" placeholder="Who is the bill for?">
+
+    <label>Job Reference / PO #</label>
+    <input type="text" id="jobRef" placeholder="Reference number">
+
+    <div id="itemsList"></div>
+    <button class="btn btn-outline" onclick="addItem()">+ ADD SERVICE/ITEM</button>
+
+    <label style="margin-top:25px;">Site Notes</label>
+    <textarea id="notes" rows="3" placeholder="Any specific details for the invoice?"></textarea>
+
+    <button class="btn btn-green" onclick="submitToOffice()">SUBMIT TO OFFICE</button>
+</div>
+
+<script>
+    // This list stays updated via your QBO Sync

@@ -43,7 +43,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 40px auto;
             padding: 0 20px;
         }
@@ -65,6 +65,7 @@
             display: flex;
             flex-direction: column;
             border: 1px solid rgba(0,0,0,0.05);
+            height: 100%;
         }
 
         .app-card:hover {
@@ -74,19 +75,19 @@
 
         .app-icon {
             height: 160px;
-            background-color: var(--charcoal);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
+            font-size: 3.5rem;
             color: var(--white);
         }
 
-        /* Specific Icon Gradients */
+        /* Tool Colors */
         .bg-calculator { background: linear-gradient(135deg, #2d5a27, #3e7a35); }
-        .bg-quote { background: linear-gradient(135deg, #2c3e50, #4a69bd); }
-        .bg-intake { background: linear-gradient(135deg, #f39c12, #e67e22); }
-        .bg-roadmap { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+        .bg-quote      { background: linear-gradient(135deg, #2c3e50, #4a69bd); }
+        .bg-intake     { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .bg-roadmap    { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+        .bg-matcher    { background: linear-gradient(135deg, #4682b4, #5f9ea0); } /* Steel Blue */
 
         .app-info {
             padding: 20px;
@@ -128,7 +129,7 @@
 <header>
     <div class="header-content">
         <h1>EOCO BUSINESS HUB</h1>
-        <p>Select a tool to manage your workflow</p>
+        <p>Your complete back-office command center</p>
     </div>
 </header>
 
@@ -139,7 +140,7 @@
             <div class="app-icon bg-calculator">📊</div>
             <div class="app-info">
                 <h3>Real Cost Calculator</h3>
-                <p>Calculate labor, overhead, and true project margins instantly.</p>
+                <p>Labor, overhead, and margin analysis for your projects.</p>
             </div>
             <div class="app-footer">Launch Tool →</div>
         </a>
@@ -148,7 +149,7 @@
             <div class="app-icon bg-quote">📄</div>
             <div class="app-info">
                 <h3>Quote Master</h3>
-                <p>Generate professional, accurate quotes for your clients on the fly.</p>
+                <p>Generate professional, accurate quotes for your clients instantly.</p>
             </div>
             <div class="app-footer">Launch Tool →</div>
         </a>
@@ -157,7 +158,7 @@
             <div class="app-icon bg-intake">📝</div>
             <div class="app-info">
                 <h3>Field Intake Form</h3>
-                <p>Capture lead information and job details directly from the job site.</p>
+                <p>Capture lead information and job details while on-site.</p>
             </div>
             <div class="app-footer">Launch Tool →</div>
         </a>
@@ -166,9 +167,18 @@
             <div class="app-icon bg-roadmap">📅</div>
             <div class="app-info">
                 <h3>Compliance Roadmap</h3>
-                <p>12-month guide for HST, WCB, and bookkeeping with Dave's tutorials.</p>
+                <p>12-month guide for HST, WCB, and recurring business deadlines.</p>
             </div>
             <div class="app-footer">Launch Tool →</div>
+        </a>
+
+        <a href="https://audit-matcher-ckjdjazz5fnszrzwaxvjuw.streamlit.app" class="app-card" target="_blank">
+            <div class="app-icon bg-matcher">📂</div>
+            <div class="app-info">
+                <h3>EOCO Audit Matcher</h3>
+                <p>AI-powered tool to match CSV transactions with PDF receipts automatically.</p>
+            </div>
+            <div class="app-footer">Launch App →</div>
         </a>
 
     </div>

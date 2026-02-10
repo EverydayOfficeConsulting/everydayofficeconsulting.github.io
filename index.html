@@ -3,103 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EOCO | Tools Library</title>
+    <title>EOCO | Business Tool Library</title>
     <style>
-        :root { --evergreen: #2d5a27; --dark: #1a1a1a; --bg: #f4f4f9; }
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 40px 20px; margin: 0; }
-        
-        .header { text-align: center; margin-bottom: 50px; }
-        h1 { margin: 0; font-size: 2.5rem; font-weight: 900; color: var(--dark); letter-spacing: -1px; }
-        .sub-brand { color: var(--evergreen); font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; }
-
-        /* Steam Library Style Grid */
-        .hub-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-            gap: 25px; 
-            max-width: 1000px; 
-            width: 100%; 
+        :root {
+            --evergreen: #2d5a27;
+            --charcoal: #2c3e50;
+            --white: #ffffff;
+            --light-bg: #f0f2f5;
         }
 
-        .tool-card { 
-            background: white; 
-            border: 2px solid transparent; 
-            border-radius: 20px; 
-            padding: 30px; 
-            text-align: center; 
-            transition: all 0.3s ease; 
-            text-decoration: none; 
-            color: inherit; 
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 0;
+            color: var(--charcoal);
+        }
+
+        header {
+            background-color: var(--evergreen);
+            color: var(--white);
+            padding: 40px 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .header-content h1 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+
+        .header-content p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* The App Grid */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        /* App Card Style (Steam Library Vibe) */
+        .app-card {
+            background: var(--white);
+            border-radius: 15px;
+            overflow: hidden;
             box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            border: 1px solid rgba(0,0,0,0.05);
         }
 
-        .tool-card:hover { 
-            transform: translateY(-10px); 
-            border-color: var(--evergreen); 
-            box-shadow: 0 20px 40px rgba(45, 90, 39, 0.15); 
+        .app-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
         }
 
-        .tool-icon { font-size: 3.5rem; margin-bottom: 20px; }
-        .tool-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 10px; color: var(--dark); }
-        .tool-desc { font-size: 0.85rem; color: #666; line-height: 1.5; margin-bottom: 25px; }
-
-        .btn-launch { 
-            background: var(--dark); 
-            color: white; 
-            padding: 12px; 
-            border-radius: 10px; 
-            font-weight: 800; 
-            font-size: 0.8rem; 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-            transition: 0.2s;
+        .app-icon {
+            height: 160px;
+            background-color: var(--charcoal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--white);
         }
 
-        .tool-card:hover .btn-launch { background: var(--evergreen); }
-        
-        .footer { margin-top: 80px; font-size: 0.75rem; color: #999; text-align: center; font-weight: 600; }
+        /* Specific Icon Colors */
+        .bg-calculator { background: linear-gradient(135deg, #2d5a27, #3e7a35); }
+        .bg-quote { background: linear-gradient(135deg, #2c3e50, #4a69bd); }
+        .bg-intake { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .bg-roadmap { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+
+        .app-info {
+            padding: 20px;
+            flex-grow: 1;
+        }
+
+        .app-info h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.25rem;
+            color: var(--evergreen);
+        }
+
+        .app-info p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .app-footer {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+            text-align: right;
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: var(--evergreen);
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 600px) {
+            header { padding: 30px 15px; }
+            .header-content h1 { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>EOCO</h1>
-        <div class="sub-brand">Simple Systems Tool Library</div>
+<header>
+    <div class="header-content">
+        <h1>EOCO BUSINESS HUB</h1>
+        <p>Select a tool to manage your workflow</p>
     </div>
+</header>
 
-    <div class="hub-grid">
-        <a href="/fieldintake/" class="tool-card">
-            <div>
-                <div class="tool-icon">📲</div>
-                <div class="tool-title">Field Intake</div>
-                <div class="tool-desc">Simplified job capture for contractors. Send data directly to the office via email.</div>
+<div class="container">
+    <div class="app-grid">
+
+        <a href="/calculator/" class="app-card">
+            <div class="app-icon bg-calculator">📊</div>
+            <div class="app-info">
+                <h3>Real Cost Calculator</h3>
+                <p>Calculate labor, overhead, and true project margins instantly.</p>
             </div>
-            <div class="btn-launch">Open Portal</div>
+            <div class="app-footer">Launch Tool →</div>
         </a>
 
-        <a href="/projectquote/" class="tool-card">
-            <div>
-                <div class="tool-icon">📝</div>
-                <div class="tool-title">Quote Master</div>
-                <div class="tool-desc">The professional proposal engine. Generate client PDFs and QuickBooks import files.</div>
+        <a href="/quote-master/" class="app-card">
+            <div class="app-icon bg-quote">📄</div>
+            <div class="app-info">
+                <h3>Quote Master</h3>
+                <p>Generate professional, accurate quotes for your clients on the fly.</p>
             </div>
-            <div class="btn-launch">Open Quoter</div>
+            <div class="app-footer">Launch Tool →</div>
         </a>
 
-        <a href="/newcalculator/" class="tool-card">
-            <div>
-                <div class="tool-icon">📊</div>
-                <div class="tool-title">Cost Calculator</div>
-                <div class="tool-desc">Calculate true hourly employee burden including Nova Scotia provincial taxes.</div>
+        <a href="/field-intake/" class="app-card">
+            <div class="app-icon bg-intake">📝</div>
+            <div class="app-info">
+                <h3>Field Intake Form</h3>
+                <p>Capture lead information and job details directly from the job site.</p>
             </div>
-            <div class="btn-launch">Open Calculator</div>
+            <div class="app-footer">Launch Tool →</div>
         </a>
+
+        <a href="/roadmap/" class="app-card">
+            <div class="app-icon bg-roadmap">📅</div>
+            <div class="app-info">
+                <h3>Compliance Roadmap</h3>
+                <p>12-month guide for HST, WCB, and bookkeeping deadlines with video tutorials.</p>
+            </div>
+            <div class="app-footer">Launch Tool →</div>
+        </a>
+
     </div>
-
-    <div class="footer">© 2026 EVERYDAY OFFICE CONSULTING - NOVA SCOTIA</div>
+</div>
 
 </body>
 </html>

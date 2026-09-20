@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>EOCO Admin · Real Cost Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../platform/admin.css">
+<style>
+.preview-col .preview-frame { height: calc(100vh - 230px); min-height: 560px; background: #f4f4f9; }
+.form-note { background: var(--sunken); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 10px 12px; font-size: .86rem; color: var(--muted); margin-bottom: 14px; }
+.code-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 8px; }
+.day-bars { list-style: none; margin: 0; padding: 0 0 12px; }
+.day-bars li { display: grid; grid-template-columns: 90px 1fr 40px; gap: 10px; align-items: center; font-size: .85rem; margin-bottom: 6px; }
+</style>
+</head>
+<body data-theme="light">
+
+<header class="topbar">
+  <div class="topbar-row">
+    <div class="brand">
+      <span class="brand-mark">EOCO</span>
+      <div class="switcher" id="tool-switcher"></div>
+    </div>
+    <div class="topbar-right">
+      <span class="who" id="who"></span>
+      <a class="ghost-light" href="index.html" target="_blank" rel="noopener">View calculator ↗</a>
+      <button class="ghost-light" id="theme-btn" type="button">Dark mode</button>
+      <button class="ghost-light" id="signout-btn" type="button" hidden>Sign out</button>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs" role="tablist" data-app hidden>
+    <button class="tab" role="tab" data-tab="rates" type="button">Rates</button>
+    <button class="tab" role="tab" data-tab="wording" type="button">Wording &amp; look</button>
+    <button class="tab" role="tab" data-tab="access" type="button">Access</button>
+    <button class="tab" role="tab" data-tab="activity" type="button">Activity</button>
+    <button class="tab" role="tab" data-tab="backup" type="button">Backup</button>
+  </nav>
+</header>
+
+<section class="gate" id="gate" hidden>
+  <div class="gate-card">
+    <h1>Sign in to manage the calculator</h1>
+    <p>Use your EOCO admin account.</p>
+    <label class="field"><span>Email</span><input class="input" id="login-email" type="email" autocomplete="username"></label>
+    <label class="field"><span>Password</span><input class="input" id="login-pass" type="password" autocomplete="current-password"></label>
+    <button class="btn btn-primary" id="login-btn" type="button">Sign in</button>
+    <div class="notice error" id="login-error" hidden></div>
+  </div>
+</section>
+
+<div data-app hidden>
+<div class="note page" id="upgrade-note" hidden style="margin-top:20px;margin-bottom:0;max-width:1320px">
+  The calculator needs one database update. Run <b>upgrade-v3.sql</b> in the Supabase SQL Editor, then refresh this page.
+</div>
+
+<!-- Rates / Wording / Access share the editor + live preview -->
+<main class="page wide" id="tab-editor" hidden>
+  <div class="page-head"><div><h1 id="editor-title">Rates</h1><p id="editor-sub"></p></div></div>
+  <div class="split">
+    <div>
+      <div id="editor-form"></div>
+      <div id="access-extra"></div>
+      <div class="sticky-save" id="save-bar">
+        <span class="status" id="ap-status">All changes saved</span>
+        <button class="btn btn-quiet btn-sm" type="button" id="ap-reset">Reset this tab</button>
+        <button class="btn btn-quiet btn-sm" type="button" id="ap-discard" disabled>Discard</button>
+        <button class="btn btn-primary" type="button" id="ap-save" disabled>Save &amp; publish</button>
+      </div>
+    </div>
+    <div class="preview-col">
+      <div class="preview-frame-wrap">
+        <div class="preview-bar"><span>Live preview</span><span class="muted" style="font-size:.8rem">Not saved until you publish</span></div>
+        <iframe class="preview-frame" id="preview-frame" title="Calculator preview"></iframe>
+      </div>
+    </div>
+  </div>
+</main>
+
+<main class="page" id="tab-activity" hidden>
+  <div class="page-head">
+    <div><h1>Activity</h1><p>How the calculator is being used. Counts are anonymous: no names or wages are ever recorded.</p></div>
+    <button class="btn btn-quiet" id="refresh-activity" type="button">Refresh</button>
+  </div>
+  <div id="activity"><div class="loading">Loading…</div></div>
+</main>
+
+<main class="page" id="tab-backup" hidden>
+  <div class="page-head"><div><h1>Backup</h1><p>A backup of the calculator's settings, wording and access code.</p></div></div>
+  <div class="block kit-card">
+    <div class="kit-body">
+      <div><div class="block-head"><h3>Complete backup of every tool</h3></div>
+        <p>The full rebuild kit (all tools, the website files and the step-by-step guide) lives in the main admin.</p></div>
+      <div class="kit-action"><a class="btn btn-primary" href="../admin/#backup">Open main admin backup</a></div>
+    </div>
+  </div>
+  <div class="backup-grid">
+    <div class="block">
+      <div class="block-head"><h3>Calculator backup</h3></div>
+      <p>Everything you've set in this admin, in one file.</p>
+      <button class="btn btn-quiet" id="backup-tool" type="button">Download calculator backup</button>
+    </div>
+    <div class="block">
+      <div class="block-head"><h3>Restore</h3></div>
+      <p>Puts the calculator back the way it was in a calculator backup, or in a full backup from the main admin.</p>
+      <label class="btn btn-quiet" style="cursor:pointer">Choose backup file…<input type="file" id="restore-file" accept=".json,application/json" hidden></label>
+    </div>
+  </div>
+</main>
+</div>
+
+<dialog id="confirm">
+  <h2 id="confirm-title"></h2>
+  <p id="confirm-text"></p>
+  <div id="confirm-extra"></div>
+  <div class="dialog-actions">
+    <button class="btn btn-quiet" id="confirm-cancel" type="button">Cancel</button>
+    <button class="btn btn-danger" id="confirm-ok" type="button">Delete</button>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../config.js"></script>
+<script src="../platform/tools.js"></script>
+<script src="../platform/admin-common.js"></script>
+<script>
+const CALC_DEFAULTS = {
+    brand:  { title: 'EOCO', tagline: 'Simple Systems. Better Business.', browser_title: 'EOCO | Simple Systems' },
+    gate:   { enabled: true, version: 1, prompt: 'Enter Access Code to unlock.', button: 'ACCESS CALCULATOR', wrong: 'That code isn’t right. Please try again.' },
+    rates:  { wage: 35.00, vac: 4.0, cpp: 5.95, ei: 1.63, ei_multiplier: 1.4, wcb: 0.00 },
+    labels: { name: 'EMPLOYEE NAME / ROLE', name_placeholder: 'e.g. Lead Carpenter', wage: 'WAGE OR SALARY ($)',
+              vac: 'Vacation %', cpp: 'CPP % (2026 NS)', ei: 'EI % (2026 NS)', wcb: 'WCB Rate',
+              ei_employer: 'Employer Rate', result: 'Total Real Hourly Cost',
+              save_button: 'SAVE MY RATES', reset_button: 'RESET', pdf_button: 'DOWNLOAD PDF', saved_message: 'Rates Saved!' },
+    guide:  { enabled: true, title: 'Quick Guide', lines: ['Enter Employee or Role Name', 'Input base hourly wage', 'Verify Nova Scotia 2026 rates', 'Hit "Save" to remember settings'] },
+    footer: { note: '*Vacation first, then NS 2026 taxes. Employer EI at 1.4x.', disclaimer_link: 'View Terms & Disclaimer',
+              disclaimer: 'This tool is for budgetary estimation only. While we strive for accuracy based on 2026 Nova Scotia standards, EOCO is not liable for discrepancies.',
+              copyright: '© 2026 EOCO - Nova Scotia', more_tools: 'More EOCO tools' },
+    pdf:    { title: 'EOCO | Simple Systems', subtitle: 'Real-Cost Calculation Report', rates_heading: 'Calculated Burden Rates (NS 2026):',
+              result: 'TOTAL REAL HOURLY COST', footer: '*Estimate based on Nova Scotia standards. © 2026 EOCO - Nova Scotia' },
+    qr:     { enabled: true, url: '' },
+    colors: { brand: '#2d5a27', dark: '#1a1a1a', background: '#f4f4f9' }
+};
+
+const TOOL_ID = 'calculator';
+const { esc, plural, clone, toast, ask } = EOCO;
+const $ = id => document.getElementById(id);
+const sb = EOCO.client();
+
+let saved = null, draft = null, dirty = false, savedAt = null, ready = false, currentTab = 'rates';
+
+/* ---------- what each tab edits ---------- */
+const TABS = {
+  rates: {
+    title: 'Rates', sub: 'The starting numbers everyone sees. Visitors can still type their own and save them on their device.',
+    blocks: [
+      { h: 'Default rates', note: 'Check these each January, when the CRA publishes the new CPP and EI rates, and when your WCB rate changes.', fields: [
+        ['rates.wage', 'Default wage or salary ($)', 'number', 0.01],
+        ['rates.vac', 'Vacation pay %', 'number', 0.01],
+        ['rates.cpp', 'CPP %', 'number', 0.01],
+        ['rates.ei', 'EI % (employee rate)', 'number', 0.01],
+        ['rates.ei_multiplier', 'Employer EI multiplier', 'number', 0.01, 'Employers pay 1.4× the employee EI rate.'],
+        ['rates.wcb', 'WCB rate %', 'number', 0.01] ] },
+      { h: 'Rate labels', note: 'Update the year in these when you update the rates.', fields: [
+        ['labels.vac', 'Vacation label'], ['labels.cpp', 'CPP label'], ['labels.ei', 'EI label'], ['labels.wcb', 'WCB label'],
+        ['footer.note', 'Note under the result'], ['pdf.rates_heading', 'Rates heading in the PDF'] ] }
+    ]
+  },
+  wording: {
+    title: 'Wording & look', sub: 'Every word on the calculator and in its PDF, plus its colours.',
+    blocks: [
+      { h: 'Heading', fields: [['brand.title', 'Title'], ['brand.tagline', 'Tagline'], ['brand.browser_title', 'Browser tab title']] },
+      { h: 'Colours', fields: [['colors.brand', 'Main colour (border, buttons, QR code)', 'color'], ['colors.dark', 'Result box and PDF button', 'color'], ['colors.background', 'Page background', 'color']] },
+      { h: 'Fields and result', fields: [
+        ['labels.name', 'Name field label'], ['labels.name_placeholder', 'Name field example text'], ['labels.wage', 'Wage field label'],
+        ['labels.ei_employer', 'Text after the employer EI rate'], ['labels.result', 'Label under the total'] ] },
+      { h: 'Buttons', fields: [
+        ['labels.save_button', 'Save button'], ['labels.reset_button', 'Reset button'], ['labels.pdf_button', 'PDF button'], ['labels.saved_message', 'Message after saving'] ] },
+      { h: 'Quick guide pop-up', note: 'Shown once, the first time someone opens the calculator.', fields: [
+        ['guide.enabled', 'Show the quick guide', 'check'], ['guide.title', 'Guide title'], ['guide.lines', 'Guide lines (one per line)', 'lines'] ] },
+      { h: 'Footer', fields: [
+        ['footer.disclaimer_link', 'Disclaimer link text'], ['footer.disclaimer', 'Disclaimer (shown when clicked)', 'textarea'],
+        ['footer.copyright', 'Copyright line'], ['footer.more_tools', 'Link to your other tools'] ] },
+      { h: 'PDF report', fields: [
+        ['pdf.title', 'PDF title'], ['pdf.subtitle', 'PDF subtitle'], ['pdf.result', 'Result heading'], ['pdf.footer', 'Small print at the bottom'] ] },
+      { h: 'QR code', fields: [
+        ['qr.enabled', 'Show the QR code', 'check'], ['qr.url', 'QR code link', 'text', null, 'Leave empty to link to the calculator itself.'] ] }
+    ]
+  },
+  access: {
+    title: 'Access', sub: 'Choose whether people need a code to use the calculator.',
+    blocks: [
+      { h: 'Access gate', fields: [
+        ['gate.enabled', 'Require an access code', 'check', null, 'Untick to let anyone use the calculator.'],
+        ['gate.prompt', 'Message above the code box'], ['gate.button', 'Button text'], ['gate.wrong', 'Wrong-code message'] ] }
+    ]
+  }
+};
+
+const getPath = (o, p) => p.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
+function setPath(o, p, v) { const k = p.split('.'); let x = o; k.slice(0, -1).forEach(s => x = x[s]); x[k[k.length - 1]] = v; }
+
+/* ---------- start ---------- */
+EOCO.themeButton();
+EOCO.mountSwitcher(TOOL_ID);
+EOCO.auth({ onReady: load, beforeSignOut: () => !dirty || confirm('You have unsaved changes. Sign out anyway?') });
+
+async function load() {
+  const { data, error } = await sb.from('tool_settings').select('settings, updated_at').eq('tool_id', TOOL_ID).maybeSingle();
+  if (error || !data) { $('upgrade-note').hidden = false; }
+  saved = EOCO.merge(CALC_DEFAULTS, data ? data.settings : {});
+  savedAt = data ? data.updated_at : null;
+  draft = clone(saved);
+  ready = true;
+  const frame = $('preview-frame');
+  frame.onload = pushPreview;
+  frame.src = 'index.html?preview=1';
+  showTab((location.hash || '#rates').slice(1));
+}
+
+function showTab(name) {
+  if (!['rates', 'wording', 'access', 'activity', 'backup'].includes(name)) name = 'rates';
+  currentTab = name;
+  document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  const isEditor = !!TABS[name];
+  $('tab-editor').hidden = !isEditor; $('tab-activity').hidden = name !== 'activity'; $('tab-backup').hidden = name !== 'backup';
+  if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+  if (isEditor) renderEditor();
+  if (name === 'activity') loadActivity();
+  window.scrollTo(0, 0);
+}
+$('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+
+/* ---------- editor ---------- */
+function fieldHTML([path, label, type = 'text', step, hint]) {
+  const v = getPath(draft, path);
+  const id = 'f-' + path.replace(/\./g, '-');
+  const small = hint ? `<small>${esc(hint)}</small>` : '';
+  if (type === 'check') return `<label class="check"><input type="checkbox" id="${id}" data-p="${path}" data-t="check" ${v ? 'checked' : ''}><span><b>${esc(label)}</b>${hint ? `<small>${esc(hint)}</small>` : ''}</span></label>`;
+  if (type === 'color') return `<div class="color-row"><input type="color" data-p="${path}" data-t="color" value="${esc(v)}" aria-label="${esc(label)}">
+    <div class="lbl"><b>${esc(label)}</b></div><input class="input" data-hex="${path}" value="${esc(v)}" maxlength="7" aria-label="${esc(label)} hex code"></div>`;
+  if (type === 'textarea' || type === 'lines') return `<label class="field"><span>${esc(label)}</span><textarea class="textarea" id="${id}" data-p="${path}" data-t="${type}" rows="${type === 'lines' ? 5 : 3}">${esc(type === 'lines' ? (v || []).join('\n') : v)}</textarea>${small}</label>`;
+  return `<label class="field"><span>${esc(label)}</span><input class="input" id="${id}" data-p="${path}" data-t="${type}" type="${type === 'number' ? 'number' : 'text'}" ${step ? `step="${step}"` : ''} value="${esc(v)}">${small}</label>`;
+}
+
+function renderEditor() {
+  const t = TABS[currentTab];
+  $('editor-title').textContent = t.title;
+  $('editor-sub').textContent = t.sub + (currentTab === 'rates' && savedAt ? ` Last published ${EOCO.timeAgo(savedAt)}.` : '');
+  $('editor-form').innerHTML = t.blocks.map(b => `<div class="block"><div class="block-head"><h3>${esc(b.h)}</h3></div>
+    ${b.note ? `<div class="form-note">${esc(b.note)}</div>` : ''}${b.fields.map(fieldHTML).join('')}</div>`).join('');
+  $('access-extra').innerHTML = currentTab === 'access' ? accessCodeHTML() : '';
+  if (currentTab === 'access') loadCode();
+  markDirty(dirty);
+}
+
+$('editor-form').addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.hex) {
+    let v = el.value.trim(); if (v && v[0] !== '#') v = '#' + v;
+    if (!/^#[0-9a-f]{6}$/i.test(v)) return;
+    setPath(draft, el.dataset.hex, v);
+    const pick = $('editor-form').querySelector(`[data-p="${el.dataset.hex}"]`); if (pick) pick.value = v;
+  } else if (el.dataset.p) {
+    const t = el.dataset.t;
+    const v = t === 'check' ? el.checked : t === 'number' ? (el.value === '' ? 0 : Number(el.value))
+            : t === 'lines' ? el.value.split('\n') : el.value;
+    setPath(draft, el.dataset.p, v);
+    if (t === 'color') { const hex = $('editor-form').querySelector(`[data-hex="${el.dataset.p}"]`); if (hex) hex.value = v; }
+  } else return;
+  markDirty(true); pushPreview();
+});
+$('editor-form').addEventListener('change', e => { if (e.target.type === 'checkbox') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
+
+function markDirty(v) {
+  dirty = v;
+  $('ap-status').textContent = v ? 'Unsaved changes' : 'All changes saved'; $('ap-status').className = 'status';
+  $('ap-save').disabled = !v; $('ap-discard').disabled = !v;
+}
+
+let queued = false;
+function pushPreview(resetWage) {
+  if (queued) return; queued = true;
+  requestAnimationFrame(() => {
+    queued = false;
+    const w = $('preview-frame').contentWindow;
+    if (w && draft) w.postMessage({ type: 'eoco-calc-preview', settings: draft, resetWage: true }, '*');
+  });
+}
+
+$('ap-save').onclick = async () => {
+  if (draft.guide && Array.isArray(draft.guide.lines)) draft.guide.lines = draft.guide.lines.map(s => s.trim()).filter(Boolean);
+  $('ap-save').disabled = true; $('ap-status').textContent = 'Saving…';
+  const { data, error } = await sb.from('tool_settings').upsert({ tool_id: TOOL_ID, settings: draft }).select('updated_at').maybeSingle();
+  if (error) { $('ap-status').textContent = `Couldn't save: ${error.message}`; $('ap-status').className = 'status error'; $('ap-save').disabled = false; return; }
+  saved = clone(draft); savedAt = (data && data.updated_at) || new Date().toISOString();
+  markDirty(false);
+  $('ap-status').textContent = 'Saved. Live on the calculator now.'; $('ap-status').className = 'status ok';
+  toast('Calculator updated');
+};
+$('ap-discard').onclick = () => { draft = clone(saved); renderEditor(); markDirty(false); pushPreview(); };
+$('ap-reset').onclick = async () => {
+  const t = TABS[currentTab];
+  const ok = await ask({ title: `Reset ${t.title.toLowerCase()} to the original?`, text: 'Puts every field on this tab back to how the calculator first came. Nothing changes for visitors until you press Save & publish.', ok: 'Reset', danger: false });
+  if (!ok) return;
+  t.blocks.forEach(b => b.fields.forEach(([p]) => setPath(draft, p, clone(getPath(CALC_DEFAULTS, p)))));
+  renderEditor(); markDirty(true); pushPreview();
+};
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------- access code ---------- */
+function accessCodeHTML() {
+  return `<div class="block">
+    <div class="block-head"><h3>Access code</h3><span id="code-updated"></span></div>
+    <div class="form-note">This is saved on its own, straight away, with the button below. It's never visible in the calculator's page code.</div>
+    <label class="field"><span>Current code</span>
+      <div class="code-row"><input class="input" id="code-current" type="password" readonly value="">
+      <button class="btn btn-quiet btn-sm" type="button" id="code-show">Show</button></div></label>
+    <label class="field"><span>New code</span><input class="input" id="code-new" type="text" autocomplete="off" placeholder="At least 6 characters"></label>
+    <label class="check"><input type="checkbox" id="code-relock" checked><span><b>Make everyone enter the new code</b>
+      <small>People who already unlocked the calculator will be asked for the new code.</small></span></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn btn-primary btn-sm" type="button" id="code-save">Save new code</button>
+      <button class="btn btn-quiet btn-sm" type="button" id="code-relock-now">Ask everyone for the code again</button>
+    </div>
+  </div>`;
+}
+
+async function loadCode() {
+  const { data } = await sb.from('tool_secrets').select('access_code, updated_at').eq('tool_id', TOOL_ID).maybeSingle();
+  if (!$('code-current')) return;
+  $('code-current').value = data ? data.access_code : '';
+  $('code-updated').textContent = data && data.updated_at ? 'Changed ' + EOCO.timeAgo(data.updated_at) : '';
+}
+
+async function bumpVersion() {
+  const next = clone(saved); next.gate.version = (Number(next.gate.version) || 1) + 1;
+  const { error } = await sb.from('tool_settings').upsert({ tool_id: TOOL_ID, settings: next });
+  if (error) throw error;
+  saved = next; draft.gate.version = next.gate.version;
+}
+
+$('access-extra').addEventListener('click', async e => {
+  if (e.target.id === 'code-show') {
+    const i = $('code-current'); const show = i.type === 'password';
+    i.type = show ? 'text' : 'password'; e.target.textContent = show ? 'Hide' : 'Show';
+  }
+  if (e.target.id === 'code-save') {
+    const code = $('code-new').value.trim();
+    if (code.length < 6) { toast('Use at least 6 characters', true); return; }
+    e.target.disabled = true;
+    try {
+      const { error } = await sb.from('tool_secrets').upsert({ tool_id: TOOL_ID, access_code: code });
+      if (error) throw error;
+      if ($('code-relock').checked) await bumpVersion();
+      $('code-new').value = ''; loadCode();
+      toast($('code-relock').checked ? 'New code saved. Everyone will be asked for it.' : 'New code saved');
+    } catch (err) { toast(`Couldn't save: ${err.message}`, true); }
+    e.target.disabled = false;
+  }
+  if (e.target.id === 'code-relock-now') {
+    const ok = await ask({ title: 'Ask everyone for the code again?', text: 'Everyone who has unlocked the calculator will need to enter the access code again the next time they open it.', ok: 'Ask again', danger: false });
+    if (!ok) return;
+    try { await bumpVersion(); toast('Done. Everyone will be asked for the code.'); } catch (err) { toast(`Couldn't update: ${err.message}`, true); }
+  }
+});
+
+/* ---------- activity ---------- */
+async function loadActivity() {
+  const box = $('activity');
+  box.innerHTML = '<div class="loading">Loading…</div>';
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const [recent, allPdf, allUnlock] = await Promise.all([
+    sb.from('tool_events').select('event, created_at').eq('tool_id', TOOL_ID).gte('created_at', since).order('created_at').range(0, 9999),
+    EOCO.countEvents(TOOL_ID, 'pdf'), EOCO.countEvents(TOOL_ID, 'unlock')
+  ]);
+  if (recent.error) { box.innerHTML = `<div class="empty"><h2>Couldn't load activity</h2><p>${esc(recent.error.message)}</p></div>`; return; }
+  const rows = recent.data || [];
+  const week = Date.now() - 7 * 86400000;
+  const count = (ev, w) => rows.filter(r => r.event === ev && (!w || new Date(r.created_at).getTime() >= w)).length;
+  const days = [];
+  for (let i = 13; i >= 0; i--) { const d = new Date(Date.now() - i * 86400000); days.push(EOCO.day(d)); }
+  const perDay = {}; rows.filter(r => r.event === 'pdf').forEach(r => { const k = EOCO.day(new Date(r.created_at)); perDay[k] = (perDay[k] || 0) + 1; });
+  const max = Math.max(1, ...days.map(d => perDay[d] || 0));
+  box.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><b>${count('pdf', week)}</b><span>PDFs downloaded this week</span></div>
+      <div class="stat"><b>${count('pdf')}</b><span>PDFs in the last 30 days</span></div>
+      <div class="stat"><b>${count('unlock')}</b><span>New unlocks in 30 days</span></div>
+      <div class="stat"><b>${count('save')}</b><span>Rates saved in 30 days</span></div>
+    </div>
+    <div class="block"><div class="block-head"><h3>PDFs per day</h3><span>Last 14 days</span></div>
+      <ul class="day-bars">${days.map(d => `<li><span>${new Date(d + 'T12:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+        <div class="bar"><i style="width:${(perDay[d] || 0) / max * 100}%"></i></div><span class="n muted" style="text-align:right">${perDay[d] || 0}</span></li>`).join('')}</ul></div>
+    <p class="muted" style="font-size:.85rem">All time: ${plural(allPdf || 0, 'PDF')} downloaded, ${plural(allUnlock || 0, 'unlock')}. Counting started when the calculator moved to the new system.</p>`;
+}
+$('refresh-activity').onclick = loadActivity;
+
+/* ---------- backup ---------- */
+$('backup-tool').onclick = async () => {
+  try {
+    const data = await EOCO.exportTool(TOOL_ID);
+    if (data.errors.length) throw new Error(data.errors.join('; '));
+    EOCO.downloadFile(`eoco-calculator-backup-${EOCO.day()}.json`, JSON.stringify(data, null, 2), 'application/json');
+    toast('Calculator backup downloaded');
+  } catch (err) { toast(`Backup failed: ${err.message}`, true); }
+};
+$('restore-file').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let data; try { data = JSON.parse(await f.text()); } catch { toast("That file isn't a valid backup", true); return; }
+  if (!EOCO.toolSection(data, TOOL_ID)) { toast('That file has no calculator content', true); return; }
+  const when = data.exported_at ? new Date(data.exported_at).toLocaleString() : 'an unknown date';
+  const ok = await ask({ title: 'Restore the calculator?', text: `From ${when}. The calculator's rates, wording, colours and access code go back to how they were then.`, ok: 'Restore', danger: false });
+  if (!ok) return;
+  try { await EOCO.restoreTool(TOOL_ID, data); toast('Calculator restored'); dirty = false; await load(); }
+  catch (err) { toast(`Restore failed: ${err.message}`, true); }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>EOCO Admin · Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../platform/admin.css">
+</head>
+<body data-theme="light">
+
+<header class="topbar">
+  <div class="topbar-row">
+    <div class="brand">
+      <span class="brand-mark">EOCO</span>
+      <div class="switcher" id="tool-switcher"></div>
+    </div>
+    <div class="topbar-right">
+      <span class="who" id="who"></span>
+      <a class="ghost-light" href="index.html" target="_blank" rel="noopener">View site ↗</a>
+      <button class="ghost-light" id="theme-btn" type="button">Dark mode</button>
+      <button class="ghost-light" id="signout-btn" type="button" hidden>Sign out</button>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs" role="tablist" hidden>
+    <button class="tab" role="tab" data-tab="modules" type="button">Modules</button>
+    <button class="tab" role="tab" data-tab="phases" type="button">Phases</button>
+    <button class="tab" role="tab" data-tab="appearance" type="button">Appearance</button>
+    <button class="tab" role="tab" data-tab="insights" type="button">Insights</button>
+    <button class="tab" role="tab" data-tab="backup" type="button">Backup</button>
+  </nav>
+</header>
+
+<!-- Sign-in -->
+<section class="gate" id="gate" hidden>
+  <div class="gate-card">
+    <h1>Sign in to manage the roadmap</h1>
+    <p>Use the admin account you created in Supabase.</p>
+    <label class="field"><span>Email</span><input class="input" id="login-email" type="email" autocomplete="username"></label>
+    <label class="field"><span>Password</span><input class="input" id="login-pass" type="password" autocomplete="current-password"></label>
+    <button class="btn btn-primary" id="login-btn" type="button">Sign in</button>
+    <div class="notice error" id="login-error" hidden></div>
+  </div>
+</section>
+
+<div class="note page" id="upgrade-note" hidden style="margin-top:20px;margin-bottom:0;padding:12px 14px;max-width:1040px">
+  Phases, hide/show, Appearance and Insights need one database update. Run <b>upgrade-v2.sql</b> in the Supabase SQL Editor, then refresh this page.
+</div>
+
+<!-- ============ MODULES TAB ============ -->
+<main class="page" id="tab-modules" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Modules</h1>
+      <p id="summary">Loading…</p>
+    </div>
+    <button class="btn btn-primary" id="create-btn" type="button">+ Create new module</button>
+  </div>
+  <div class="toolbar">
+    <input class="search" id="search" type="search" placeholder="Search by title, ID or tag" aria-label="Search modules">
+    <select class="select" id="phase-filter" aria-label="Filter by phase"><option value="">All phases</option></select>
+    <select class="select" id="status-filter" aria-label="Filter by visibility">
+      <option value="">Visible and hidden</option>
+      <option value="visible">Visible only</option>
+      <option value="hidden">Hidden only</option>
+    </select>
+  </div>
+  <div id="list"><div class="loading">Loading modules…</div></div>
+</main>
+
+<!-- ============ PHASES TAB ============ -->
+<main class="page" id="tab-phases" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Phases</h1>
+      <p>Phases group your modules on the roadmap. Rename, reorder, add or remove them here. Renaming a phase updates all of its modules automatically.</p>
+    </div>
+  </div>
+  <div class="mod-list" id="phase-list"></div>
+  <div class="add-phase">
+    <h3>Add a phase</h3>
+    <div class="add-phase-row">
+      <input class="input" id="new-phase-name" placeholder="Phase name, e.g. PHASE 4" aria-label="New phase name">
+      <input class="input" id="new-phase-sub" placeholder="Subtitle (optional), e.g. Growing your team" aria-label="New phase subtitle">
+      <button class="btn btn-primary" id="add-phase-btn" type="button">Add phase</button>
+    </div>
+  </div>
+</main>
+
+<!-- ============ APPEARANCE TAB ============ -->
+<main class="page wide" id="tab-appearance" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Appearance</h1>
+      <p>Change how the roadmap looks. The preview updates as you go; visitors see the changes once you save.</p>
+    </div>
+  </div>
+  <div class="appearance">
+    <div id="appearance-form"></div>
+    <div class="preview-col">
+      <div class="preview-frame-wrap">
+        <div class="preview-bar">
+          <span>Live preview</span>
+          <div class="seg" role="group" aria-label="Preview mode">
+            <button type="button" data-pmode="light" aria-pressed="true">Light</button>
+            <button type="button" data-pmode="dark" aria-pressed="false">Dark</button>
+          </div>
+        </div>
+        <iframe class="preview-frame" id="preview-frame" title="Roadmap preview"></iframe>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ============ INSIGHTS TAB ============ -->
+<main class="page" id="tab-insights" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Insights</h1>
+      <p>Who is using the roadmap and how far they get. Only people who signed in are counted.</p>
+    </div>
+    <button class="btn btn-quiet" id="refresh-insights" type="button">Refresh</button>
+  </div>
+  <div id="insights"><div class="loading">Loading…</div></div>
+</main>
+
+<!-- ============ BACKUP TAB ============ -->
+<main class="page" id="tab-backup" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Backup</h1>
+      <p>The free Supabase plan doesn't keep backups for you. Download one before big changes, and keep a copy somewhere safe.</p>
+    </div>
+  </div>
+  <div class="block kit-card">
+    <div class="kit-body">
+      <div>
+        <div class="block-head"><h3>Complete backup of every tool</h3></div>
+        <p>The full rebuild kit (all tools, the website files and the step-by-step guide) lives in the main admin, so it always includes every tool.</p>
+      </div>
+      <div class="kit-action"><a class="btn btn-primary" href="../admin/#backup">Open main admin backup</a></div>
+    </div>
+  </div>
+  <div class="backup-grid">
+    <div class="block">
+      <div class="block-head"><h3>Content-only backup</h3></div>
+      <p>Every module (including hidden ones), all phases, and your appearance settings in one file.</p>
+      <button class="btn btn-quiet" id="backup-json" type="button">Download backup</button>
+    </div>
+    <div class="block">
+      <div class="block-head"><h3>Modules spreadsheet</h3></div>
+      <p>All modules as a CSV in the same format you imported into Supabase. Opens in Excel or Google Sheets.</p>
+      <button class="btn btn-quiet" id="backup-csv" type="button">Download modules.csv</button>
+    </div>
+    <div class="block">
+      <div class="block-head"><h3>Restore from a backup</h3></div>
+      <p>Puts back the phases, modules and appearance from a roadmap backup, or from a full backup made in the main admin. Modules with the same ID are replaced; anything added since is kept.</p>
+      <label class="btn btn-quiet" style="cursor:pointer">Choose backup file…<input type="file" id="restore-file" accept=".json,application/json" hidden></label>
+    </div>
+  </div>
+</main>
+
+<!-- Editor drawer -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="drawer-title" role="dialog">
+  <div class="drawer-head">
+    <div>
+      <h2 id="drawer-title">New module</h2>
+      <p id="drawer-sub"></p>
+    </div>
+    <button class="icon-btn" id="drawer-close" type="button" aria-label="Close editor">✕</button>
+  </div>
+  <form class="drawer-body" id="editor" autocomplete="off" onsubmit="return false"></form>
+  <div class="drawer-foot">
+    <span class="status" id="save-status"></span>
+    <button class="btn btn-quiet" id="cancel-btn" type="button">Cancel</button>
+    <button class="btn btn-primary" id="save-btn" type="button">Save module</button>
+  </div>
+</aside>
+
+<!-- Confirm dialog (reused) -->
+<dialog id="confirm">
+  <h2 id="confirm-title"></h2>
+  <p id="confirm-text"></p>
+  <div id="confirm-extra"></div>
+  <div class="dialog-actions">
+    <button class="btn btn-quiet" id="confirm-cancel" type="button">Cancel</button>
+    <button class="btn btn-danger" id="confirm-ok" type="button">Delete</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../config.js"></script>
+<script src="../platform/tools.js"></script>
+<script src="../platform/admin-common.js"></script>
+<script>
+// ---- EOCO shared appearance settings (same in index.html and admin.html) ----
+const EOCO_DEFAULTS = {
+  brand: {
+    name: 'EOCO',
+    slogan: 'Simple Systems. Better Business.',
+    page_title: 'The Foundational Roadmap',
+    browser_title: 'EOCO | Simple. Better.'
+  },
+  colors: {
+    light: { primary: '#3A506B', header: '#1C2541', accent: '#8DA9C4', background: '#F0F4F8',
+             panel: '#FFFFFF', text: '#334155', muted: '#64748B', border: '#D1D9E6' },
+    dark:  { primary: '#5C7C99', header: '#000000', accent: '#8DA9C4', background: '#0B1015',
+             panel: '#151B24', text: '#E2E8F0', muted: '#94A3B8', border: '#2A3645' }
+  },
+  fonts: { body: 'System', heading: 'System' },
+  sizes: { scale: 100, brand: 1.2, phase: 0.8, module_title: 1.25, module_desc: 0.9,
+           step_name: 0.9, step_content: 0.85, button: 0.7 },
+  shape: { radius: 3 },
+  default_mode: 'light',
+  banner: { enabled: false, text: '', link: '', link_text: 'Learn more' }
+};
+
+const EOCO_FONTS = {
+  'System':           { css: '-apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+  'Inter':            { g: 'Inter:wght@400;500;600;700;800',            css: '"Inter", system-ui, sans-serif' },
+  'IBM Plex Sans':    { g: 'IBM+Plex+Sans:wght@400;500;600;700',        css: '"IBM Plex Sans", system-ui, sans-serif' },
+  'Manrope':          { g: 'Manrope:wght@400;500;600;700;800',          css: '"Manrope", system-ui, sans-serif' },
+  'Montserrat':       { g: 'Montserrat:wght@400;500;600;700;800',       css: '"Montserrat", system-ui, sans-serif' },
+  'Poppins':          { g: 'Poppins:wght@400;500;600;700;800',          css: '"Poppins", system-ui, sans-serif' },
+  'Open Sans':        { g: 'Open+Sans:wght@400;500;600;700;800',        css: '"Open Sans", system-ui, sans-serif' },
+  'Lato':             { g: 'Lato:wght@400;700;900',                     css: '"Lato", system-ui, sans-serif' },
+  'Roboto':           { g: 'Roboto:wght@400;500;700;900',               css: '"Roboto", system-ui, sans-serif' },
+  'Source Sans 3':    { g: 'Source+Sans+3:wght@400;600;700;800',        css: '"Source Sans 3", system-ui, sans-serif' },
+  'Nunito Sans':      { g: 'Nunito+Sans:wght@400;600;700;800',          css: '"Nunito Sans", system-ui, sans-serif' },
+  'Work Sans':        { g: 'Work+Sans:wght@400;500;600;700;800',        css: '"Work Sans", system-ui, sans-serif' },
+  'DM Sans':          { g: 'DM+Sans:wght@400;500;600;700;800',          css: '"DM Sans", system-ui, sans-serif' },
+  'Raleway':          { g: 'Raleway:wght@400;500;600;700;800',          css: '"Raleway", system-ui, sans-serif' },
+  'Oswald':           { g: 'Oswald:wght@400;500;600;700',               css: '"Oswald", "Arial Narrow", sans-serif' },
+  'Merriweather':     { g: 'Merriweather:wght@400;700;900',             css: '"Merriweather", Georgia, serif' },
+  'Lora':             { g: 'Lora:wght@400;500;600;700',                 css: '"Lora", Georgia, serif' },
+  'Playfair Display': { g: 'Playfair+Display:wght@400;600;700;800',     css: '"Playfair Display", Georgia, serif' },
+  'Roboto Slab':      { g: 'Roboto+Slab:wght@400;500;600;700;800',      css: '"Roboto Slab", Georgia, serif' }
+};
+
+function eocoMerge(base, over) {
+  const out = { ...base };
+  if (!over || typeof over !== 'object') return out;
+  Object.keys(over).forEach(k => {
+    const b = base ? base[k] : undefined, o = over[k];
+    if (o && typeof o === 'object' && !Array.isArray(o) && b && typeof b === 'object') out[k] = eocoMerge(b, o);
+    else if (o !== undefined && o !== null) out[k] = o;
+  });
+  return out;
+}
+
+function eocoLoadFont(name) {
+  const f = EOCO_FONTS[name];
+  if (!f || !f.g) return;
+  const id = 'font-' + name.replace(/\W/g, '');
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id; link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${f.g}&display=swap`;
+  document.head.appendChild(link);
+}
+
+/* =====================================================================
+   Setup + helpers
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const cfg = window.EOCO_CONFIG || {};
+const sb = EOCO.client();
+
+let modules = [];
+let phases = [];          // [{ name, subtitle, sort_order }]
+let hasV2 = true;         // false until upgrade-v2.sql has been run
+let draft = null, mode = 'create', originalId = null, dirty = false;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const rid = p => p + Math.random().toString(36).slice(2, 8);
+const tagsToText = t => (t || []).join(', ');
+const textToTags = s => s.split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+const toolCount = m => (m.library || []).reduce((n, s) => n + (s.items || []).length, 0);
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+function toast(msg, isError) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.toggle('error', !!isError); t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), isError ? 5000 : 2400);
+}
+
+function timeAgo(iso) {
+  if (!iso) return '—';
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return plural(Math.floor(s / 60), 'minute') + ' ago';
+  if (s < 86400) return plural(Math.floor(s / 3600), 'hour') + ' ago';
+  if (s < 86400 * 30) return plural(Math.floor(s / 86400), 'day') + ' ago';
+  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function downloadFile(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function toCSV(rows, cols) {
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  return [cols.join(','), ...rows.map(r => cols.map(c => q(typeof r[c] === 'object' && r[c] !== null ? JSON.stringify(r[c]) : r[c])).join(','))].join('\n') + '\n';
+}
+
+// reusable confirm dialog → resolves true/false
+function ask({ title, text, ok = 'Delete', danger = true, extra = '', wide = false }) {
+  return new Promise(resolve => {
+    const dlg = $('confirm');
+    dlg.classList.toggle('wide', wide);
+    $('confirm-title').textContent = title;
+    $('confirm-text').textContent = text;
+    $('confirm-extra').innerHTML = extra;
+    $('confirm-ok').textContent = ok;
+    $('confirm-ok').className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
+    const done = v => { dlg.close(); resolve(v); };
+    $('confirm-ok').onclick = () => done(true);
+    $('confirm-cancel').onclick = () => done(false);
+    dlg.oncancel = e => { e.preventDefault(); done(false); };
+    dlg.showModal();
+    $('confirm-cancel').focus();
+  });
+}
+
+/* Admin light/dark (shares the preference with the main site) */
+function applyTheme(t) {
+  document.body.setAttribute('data-theme', t);
+  $('theme-btn').textContent = t === 'light' ? 'Dark mode' : 'Light mode';
+}
+applyTheme(localStorage.getItem('eoco_theme') || 'light');
+$('theme-btn').onclick = () => {
+  const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  localStorage.setItem('eoco_theme', next); applyTheme(next);
+};
+
+/* =====================================================================
+   Auth
+   ===================================================================== */
+async function boot() {
+  EOCO.mountSwitcher('roadmap');
+  if (!cfg.SUPABASE_URL || cfg.SUPABASE_URL.includes('YOUR-PROJECT')) {
+    showGate('Add your Supabase URL and anon key to config.js first.');
+    $('login-btn').disabled = true;
+    return;
+  }
+  const { data: { session } } = await sb.auth.getSession();
+  session ? enter(session) : showGate();
+}
+
+function showGate(message) {
+  document.querySelectorAll('main.page').forEach(m => m.hidden = true);
+  $('tabs').hidden = true; $('upgrade-note').hidden = true;
+  $('gate').hidden = false; $('signout-btn').hidden = true; $('who').textContent = '';
+  $('login-error').hidden = !message; $('login-error').textContent = message || '';
+}
+
+async function enter(session) {
+  const { data: isAdmin, error } = await sb.rpc('is_admin');
+  if (error || !isAdmin) {
+    await sb.auth.signOut();
+    showGate(error
+      ? `Couldn't check admin access: ${error.message}. Did you run schema.sql?`
+      : `${session.user.email} isn't an admin. Add this email to the admins table in Supabase.`);
+    return;
+  }
+  $('gate').hidden = true; $('tabs').hidden = false; $('signout-btn').hidden = false;
+  $('who').textContent = session.user.email;
+  await loadAll();
+  showTab((location.hash || '#modules').slice(1));
+}
+
+$('login-btn').onclick = async () => {
+  const email = $('login-email').value.trim(), password = $('login-pass').value;
+  if (!email || !password) { showGate('Enter your email and password.'); return; }
+  $('login-btn').disabled = true; $('login-btn').textContent = 'Signing in…';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  $('login-btn').disabled = false; $('login-btn').textContent = 'Sign in';
+  if (error) { showGate(error.message); return; }
+  enter(data.session);
+};
+$('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('login-btn').click(); });
+$('signout-btn').onclick = async () => {
+  if ((dirty || apDirty) && !confirm('You have unsaved changes. Sign out anyway?')) return;
+  await sb.auth.signOut(); location.hash = ''; showGate();
+};
+
+/* =====================================================================
+   Tabs
+   ===================================================================== */
+const TABS = ['modules', 'phases', 'appearance', 'insights', 'backup'];
+function showTab(name) {
+  if (!TABS.includes(name)) name = 'modules';
+  TABS.forEach(t => {
+    $('tab-' + t).hidden = t !== name;
+    document.querySelector(`[data-tab="${t}"]`).setAttribute('aria-selected', t === name);
+  });
+  $('upgrade-note').hidden = hasV2 || name === 'modules' || name === 'backup';
+  if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+  if (name === 'phases') renderPhases();
+  if (name === 'appearance') openAppearance();
+  if (name === 'insights') loadInsights();
+  window.scrollTo(0, 0);
+}
+$('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+window.addEventListener('hashchange', () => { if (!$('tabs').hidden) showTab(location.hash.slice(1)); });
+
+/* =====================================================================
+   Data
+   ===================================================================== */
+async function loadAll(flashId) {
+  const [p, m] = await Promise.all([
+    sb.from('phases').select('*').order('sort_order'),
+    sb.from('modules').select('*').order('sort_order').order('id')
+  ]);
+  if (m.error) {
+    $('list').innerHTML = `<div class="empty"><h2>Couldn't load modules</h2><p>${esc(m.error.message)}</p>
+      <button class="btn btn-quiet" type="button" onclick="loadAll()">Try again</button></div>`;
+    return;
+  }
+  modules = m.data || [];
+  hasV2 = !p.error;
+  phases = hasV2 ? (p.data || []) : [];
+  // any phase a module uses but the phases table doesn't have (or before the upgrade)
+  modules.forEach(x => { if (!phases.some(ph => ph.name === x.phase)) phases.push({ name: x.phase, subtitle: '', sort_order: 1e6 }); });
+  refreshPhaseFilter();
+  renderList();
+  if (!$('tab-phases').hidden) renderPhases();
+  if (flashId) {
+    const el = document.querySelector(`[data-mod="${CSS.escape(flashId)}"]`);
+    if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.add('flash'); }
+  }
+}
+
+const isPublished = m => m.published !== false;
+
+/* =====================================================================
+   MODULES TAB
+   ===================================================================== */
+function refreshPhaseFilter() {
+  const sel = $('phase-filter'), cur = sel.value;
+  sel.innerHTML = '<option value="">All phases</option>' + phases.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+  sel.value = phases.some(p => p.name === cur) ? cur : '';
+  $('status-filter').hidden = !hasV2;
+}
+
+function renderList() {
+  const q = $('search').value.trim().toLowerCase();
+  const phaseF = $('phase-filter').value, statusF = $('status-filter').value;
+  const steps = modules.reduce((n, m) => n + (m.steps || []).length, 0);
+  const hidden = modules.filter(m => !isPublished(m)).length;
+  $('summary').textContent = modules.length
+    ? `${plural(modules.length, 'module')} in ${plural(phases.length, 'phase')}, ${plural(steps, 'step')} in total${hidden ? ` · ${hidden} hidden` : ''}`
+    : 'No modules yet';
+
+  if (!phases.length) {
+    $('list').innerHTML = `<div class="empty"><h2>No phases yet</h2><p>Add a phase first, then create modules inside it.</p>
+      <button class="btn btn-primary" type="button" onclick="showTab('phases')">Go to Phases</button></div>`;
+    return;
+  }
+
+  const filtering = q || statusF;
+  const match = m => {
+    if (statusF === 'visible' && !isPublished(m)) return false;
+    if (statusF === 'hidden' && isPublished(m)) return false;
+    if (!q) return true;
+    return [m.title, m.id, m.phase, ...(m.tags || [])].join(' ').toLowerCase().includes(q);
+  };
+
+  const html = phases.filter(p => !phaseF || p.name === phaseF).map(p => {
+    const all = modules.filter(m => m.phase === p.name);
+    const mods = all.filter(match);
+    if (!mods.length && filtering) return '';
+    return `<section class="phase">
+      <span class="phase-node" aria-hidden="true"></span>
+      <div class="phase-head"><h2 class="phase-name">${esc(p.name)}</h2>
+        <span class="phase-count">${plural(all.length, 'module')}${p.subtitle ? ' · ' + esc(p.subtitle) : ''}</span>
+        <button class="btn btn-quiet btn-sm phase-add" type="button" data-act="create-in" data-phase="${esc(p.name)}">+ Add module here</button></div>
+      <div class="mod-list">${mods.length ? mods.map(m => modRow(m, all, !filtering)).join('') : '<div class="mod-empty">No modules in this phase yet.</div>'}</div>
+    </section>`;
+  }).join('');
+
+  $('list').innerHTML = html || `<div class="empty"><h2>No modules match</h2><p>Try a different search or filter.</p></div>`;
+}
+
+function modRow(m, siblings, canMove) {
+  const s = (m.steps || []).length, t = toolCount(m), i = siblings.indexOf(m);
+  const id = esc(m.id);
+  return `<article class="mod ${isPublished(m) ? '' : 'is-hidden'}" data-mod="${id}">
+    <div class="reorder">
+      <button class="icon-btn" type="button" data-act="up" data-id="${id}" ${!canMove || i === 0 ? 'disabled' : ''} aria-label="Move up">▲</button>
+      <button class="icon-btn" type="button" data-act="down" data-id="${id}" ${!canMove || i === siblings.length - 1 ? 'disabled' : ''} aria-label="Move down">▼</button>
+    </div>
+    <div>
+      <h3 class="mod-title">${esc(m.title || 'Untitled module')}${isPublished(m) ? '' : '<span class="chip chip-hidden">Hidden</span>'}</h3>
+      <div class="mod-meta">
+        <span>ID ${id}</span>
+        <span>${plural(s, 'step')}</span>
+        <span>${plural(t, 'link')}</span>
+        <span>${m.video && !/VIDEO_ID/.test(m.video) ? 'Has video' : 'No video'}</span>
+        ${m.updated_at ? `<span>Edited ${timeAgo(m.updated_at)}</span>` : ''}
+        ${(m.tags || []).length ? `<span class="chips">${m.tags.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</span>` : ''}
+      </div>
+    </div>
+    <div class="mod-actions">
+      <button class="btn btn-quiet btn-sm" type="button" data-act="edit" data-id="${id}">Edit</button>
+      <button class="btn btn-quiet btn-sm" type="button" data-act="duplicate" data-id="${id}">Duplicate</button>
+      ${hasV2 ? `<button class="btn btn-quiet btn-sm" type="button" data-act="toggle" data-id="${id}">${isPublished(m) ? 'Hide' : 'Show'}</button>` : ''}
+      <button class="btn btn-danger-quiet btn-sm" type="button" data-act="delete" data-id="${id}">Delete</button>
+    </div>
+  </article>`;
+}
+
+$('search').addEventListener('input', renderList);
+$('phase-filter').addEventListener('change', renderList);
+$('status-filter').addEventListener('change', renderList);
+$('create-btn').onclick = () => openCreate();
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+  if (b.dataset.act === 'create-in') { openCreate(b.dataset.phase); return; }
+  const m = modules.find(x => x.id === b.dataset.id); if (!m) return;
+  ({ edit: openEdit, duplicate: openDuplicate, delete: confirmDelete, toggle: togglePublished,
+     up: x => moveModule(x, -1), down: x => moveModule(x, 1) })[b.dataset.act](m);
+});
+
+async function moveModule(m, dir) {
+  const sib = modules.filter(x => x.phase === m.phase);
+  const i = sib.indexOf(m), j = i + dir;
+  if (j < 0 || j >= sib.length) return;
+  let nums = sib.map(x => Number(x.sort_order) || 0).sort((a, b) => a - b);
+  if (new Set(nums).size !== nums.length) nums = nums.map((_, k) => nums[0] + k * 10);
+  [sib[i], sib[j]] = [sib[j], sib[i]];
+  const changes = sib.map((x, k) => ({ x, n: nums[k] })).filter(c => c.x.sort_order !== c.n);
+  changes.forEach(c => c.x.sort_order = c.n);
+  modules.sort((a, b) => (a.sort_order - b.sort_order) || String(a.id).localeCompare(b.id));
+  renderList();
+  const results = await Promise.all(changes.map(c => sb.from('modules').update({ sort_order: c.n }).eq('id', c.x.id)));
+  if (results.some(r => r.error)) { toast("Couldn't save the new order", true); loadAll(); }
+}
+
+async function togglePublished(m) {
+  const next = !isPublished(m);
+  const { error } = await sb.from('modules').update({ published: next }).eq('id', m.id);
+  if (error) { toast(`Couldn't update: ${error.message}`, true); return; }
+  m.published = next; renderList();
+  toast(next ? `“${m.title}” is now visible on the site` : `“${m.title}” is now hidden from visitors`);
+}
+
+async function confirmDelete(m) {
+  const ok = await ask({
+    title: `Delete “${m.title}”?`,
+    text: `This removes the module, its ${plural((m.steps || []).length, 'step')} and ${plural(toolCount(m), 'link')}, and everyone’s checkmarks for it. This can’t be undone.${hasV2 ? ' Tip: use Hide instead if you might want it back.' : ''}`
+  });
+  if (!ok) return;
+  const { error } = await sb.from('modules').delete().eq('id', m.id);
+  if (error) { toast(`Couldn't delete: ${error.message}`, true); return; }
+  toast('Module deleted');
+  loadAll();
+}
+
+/* =====================================================================
+   Module editor (create / duplicate / edit)
+   ===================================================================== */
+function uniqueId(base) {
+  base = (base || 'module').toString().trim().replace(/\s+/g, '-');
+  if (!modules.some(m => m.id === base)) return base;
+  let n = 2; while (modules.some(m => m.id === `${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
+function nextModuleId() {
+  let n = modules.length + 1;
+  const make = k => 'MOD-' + String(k).padStart(3, '0');
+  while (modules.some(m => m.id === make(n))) n++;
+  return make(n);
+}
+
+function openCreate(phaseName) {
+  if (!phases.length) { toast('Add a phase first'); showTab('phases'); return; }
+  const phase = phaseName || phases[phases.length - 1].name;
+  const inPhase = modules.filter(m => m.phase === phase);
+  const lastOrder = inPhase.length ? Math.max(...inPhase.map(m => m.sort_order || 0))
+                  : modules.reduce((n, m) => Math.max(n, m.sort_order || 0), 0);
+  mode = 'create'; originalId = null;
+  draft = { id: nextModuleId(), sort_order: lastOrder + 10, phase, published: true,
+    title: '', tags: [], description: '', video: '',
+    steps: [{ id: rid('s_'), name: '', content: '', tags: [] }], library: [] };
+  openDrawer('New module', `Adding to ${phase}. Fill in the details, then save.`);
+}
+
+function openEdit(m) {
+  mode = 'edit'; originalId = m.id; draft = clone(m);
+  draft.steps = draft.steps || []; draft.library = draft.library || []; draft.tags = draft.tags || [];
+  draft.published = isPublished(m);
+  openDrawer('Edit module', 'Changes go live on the roadmap as soon as you save.');
+}
+
+function openDuplicate(m) {
+  mode = 'duplicate'; originalId = null; draft = clone(m);
+  delete draft.created_at; delete draft.updated_at;
+  draft.id = uniqueId(m.id + '-copy');
+  draft.title = (m.title || '') + ' (copy)';
+  draft.sort_order = (m.sort_order || 0) + 1;
+  draft.steps = (draft.steps || []).map(s => ({ ...s, id: rid('s_') }));
+  draft.library = draft.library || []; draft.tags = draft.tags || [];
+  draft.published = isPublished(m);
+  openDrawer('Duplicate module', `Copied from “${m.title}”. Nothing is saved until you press Save.`);
+  dirty = true;
+}
+
+function openDrawer(title, sub) {
+  $('drawer-title').textContent = title; $('drawer-sub').textContent = sub;
+  $('save-btn').textContent = mode === 'edit' ? 'Save changes' : 'Save module';
+  $('save-status').textContent = ''; $('save-status').className = 'status';
+  dirty = false;
+  renderEditor();
+  $('drawer').classList.add('open'); $('scrim').classList.add('open');
+  $('drawer').setAttribute('aria-hidden', 'false');
+  $('editor').scrollTop = 0;
+  setTimeout(() => $('f-title')?.focus(), 250);
+}
+
+function closeDrawer(force) {
+  if (!force && dirty && !confirm('Discard your unsaved changes?')) return;
+  $('drawer').classList.remove('open'); $('scrim').classList.remove('open');
+  $('drawer').setAttribute('aria-hidden', 'true');
+  draft = null; dirty = false;
+}
+$('drawer-close').onclick = () => closeDrawer();
+$('cancel-btn').onclick = () => closeDrawer();
+$('scrim').onclick = () => closeDrawer();
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('drawer').classList.contains('open') && !$('confirm').open) closeDrawer(); });
+window.addEventListener('beforeunload', e => { if (dirty || apDirty) { e.preventDefault(); e.returnValue = ''; } });
+
+function renderEditor() {
+  const d = draft;
+  const phaseField = hasV2
+    ? `<select class="input" data-f="phase">${phases.map(p => `<option value="${esc(p.name)}" ${p.name === d.phase ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+       <small>Need a new phase? Add it in the Phases tab.</small>`
+    : `<input class="input" data-f="phase" list="phase-list-dl" value="${esc(d.phase)}">
+       <datalist id="phase-list-dl">${phases.map(p => `<option value="${esc(p.name)}">`).join('')}</datalist>
+       <small>Pick an existing phase or type a new one.</small>`;
+  $('editor').innerHTML = `
+    <div class="block">
+      <div class="block-head"><h3>Basics</h3></div>
+      <label class="field"><span>Title</span>
+        <input class="input" id="f-title" data-f="title" value="${esc(d.title)}" placeholder="e.g. Register your business"></label>
+      <div class="grid-3">
+        <label class="field"><span>Phase</span>${phaseField}</label>
+        <label class="field"><span>Module ID</span>
+          <input class="input" data-f="id" value="${esc(d.id)}" ${mode === 'edit' ? 'readonly' : ''}>
+          <small>${mode === 'edit' ? 'IDs can’t change once saved.' : 'Must be unique.'}</small></label>
+        <label class="field"><span>Order</span>
+          <input class="input" data-f="sort_order" type="number" step="1" value="${esc(d.sort_order)}">
+          <small>Lower shows first.</small></label>
+      </div>
+      <label class="field"><span>Description</span>
+        <textarea class="textarea" data-f="description" rows="3">${esc(d.description)}</textarea></label>
+      <div class="grid-2">
+        <label class="field"><span>Video link</span>
+          <input class="input" data-f="video" value="${esc(d.video)}" placeholder="https://www.youtube.com/watch?v=…"></label>
+        <label class="field"><span>Tags</span>
+          <input class="input" data-f="tags" data-tags value="${esc(tagsToText(d.tags))}" placeholder="NS, PLUMBER, QBO">
+          <small>Province, industry or software. Leave empty to show to everyone.</small></label>
+      </div>
+      ${hasV2 ? `<label class="check"><input type="checkbox" data-f="published" ${d.published ? 'checked' : ''}>
+        <span><b>Visible on the roadmap</b><small>Untick to keep it as a hidden draft that only admins can see.</small></span></label>` : ''}
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h3>Steps</h3><span>${plural(d.steps.length, 'step')} with checkboxes</span></div>
+      ${d.steps.map((s, i) => `
+        <div class="item">
+          <div class="item-head">
+            <span class="item-num">Step ${i + 1}</span>
+            <div class="item-tools">
+              <button class="icon-btn" type="button" data-a="step-up" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Move step ${i + 1} up">↑</button>
+              <button class="icon-btn" type="button" data-a="step-down" data-i="${i}" ${i === d.steps.length - 1 ? 'disabled' : ''} aria-label="Move step ${i + 1} down">↓</button>
+              <button class="icon-btn" type="button" data-a="step-del" data-i="${i}" aria-label="Remove step ${i + 1}">✕</button>
+            </div>
+          </div>
+          <div class="grid-2">
+            <label class="field"><span>Step name</span><input class="input" data-f="steps.${i}.name" value="${esc(s.name)}"></label>
+            <label class="field"><span>Tags</span><input class="input" data-f="steps.${i}.tags" data-tags value="${esc(tagsToText(s.tags))}" placeholder="Optional"></label>
+          </div>
+          <label class="field"><span>Content</span>
+            <textarea class="textarea code" data-f="steps.${i}.content" rows="3">${esc(s.content)}</textarea>
+            <small>Shown when the step is opened. HTML is allowed.</small></label>
+        </div>`).join('')}
+      <div class="add-row"><button class="btn btn-quiet btn-sm" type="button" data-a="step-add">+ Add step</button></div>
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h3>Links &amp; tools</h3><span>Grouped into sections in the side panel</span></div>
+      ${d.library.map((sec, si) => `
+        <div class="item">
+          <div class="item-head">
+            <span class="item-num">Section ${si + 1}</span>
+            <div class="item-tools">
+              <button class="icon-btn" type="button" data-a="sec-up" data-i="${si}" ${si === 0 ? 'disabled' : ''} aria-label="Move section up">↑</button>
+              <button class="icon-btn" type="button" data-a="sec-down" data-i="${si}" ${si === d.library.length - 1 ? 'disabled' : ''} aria-label="Move section down">↓</button>
+              <button class="icon-btn" type="button" data-a="sec-del" data-i="${si}" aria-label="Remove section">✕</button>
+            </div>
+          </div>
+          <label class="field"><span>Section title</span><input class="input" data-f="library.${si}.title" value="${esc(sec.title)}" placeholder="e.g. Banks"></label>
+          ${sec.items.length ? `<div class="subitem-labels"><span>Name</span><span>Link</span><span>Tags</span><span></span></div>` : ''}
+          ${sec.items.map((it, ii) => `
+            <div class="subitem">
+              <input class="input" data-f="library.${si}.items.${ii}.name" value="${esc(it.name)}" aria-label="Tool name">
+              <input class="input" data-f="library.${si}.items.${ii}.url" value="${esc(it.url)}" placeholder="https://" aria-label="Tool link">
+              <input class="input" data-f="library.${si}.items.${ii}.tags" data-tags value="${esc(tagsToText(it.tags))}" aria-label="Tool tags">
+              <button class="icon-btn" type="button" data-a="item-del" data-i="${si}" data-j="${ii}" aria-label="Remove link">✕</button>
+            </div>`).join('')}
+          <div class="add-row"><button class="btn btn-quiet btn-sm" type="button" data-a="item-add" data-i="${si}">+ Add link</button></div>
+        </div>`).join('')}
+      <div class="add-row"><button class="btn btn-quiet btn-sm" type="button" data-a="sec-add">+ Add section</button></div>
+    </div>`;
+}
+
+function onEditorChange(e) {
+  const el = e.target, path = el.dataset.f; if (!path || !draft) return;
+  const keys = path.split('.');
+  let obj = draft;
+  keys.slice(0, -1).forEach(k => obj = obj[k]);
+  const last = keys[keys.length - 1];
+  obj[last] = el.type === 'checkbox' ? el.checked
+            : el.hasAttribute('data-tags') ? textToTags(el.value)
+            : el.type === 'number' ? (el.value === '' ? 0 : Number(el.value))
+            : el.value;
+  dirty = true;
+}
+$('editor').addEventListener('input', onEditorChange);
+$('editor').addEventListener('change', onEditorChange);
+
+$('editor').addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const i = +b.dataset.i, j = +b.dataset.j, d = draft;
+  const swap = (arr, a, c) => { [arr[a], arr[c]] = [arr[c], arr[a]]; };
+  switch (b.dataset.a) {
+    case 'step-add':  d.steps.push({ id: rid('s_'), name: '', content: '', tags: [] }); break;
+    case 'step-del':  d.steps.splice(i, 1); break;
+    case 'step-up':   swap(d.steps, i, i - 1); break;
+    case 'step-down': swap(d.steps, i, i + 1); break;
+    case 'sec-add':   d.library.push({ title: '', items: [{ name: '', url: '', tags: [] }] }); break;
+    case 'sec-del':   d.library.splice(i, 1); break;
+    case 'sec-up':    swap(d.library, i, i - 1); break;
+    case 'sec-down':  swap(d.library, i, i + 1); break;
+    case 'item-add':  d.library[i].items.push({ name: '', url: '', tags: [] }); break;
+    case 'item-del':  d.library[i].items.splice(j, 1); break;
+  }
+  dirty = true;
+  const y = $('editor').scrollTop;
+  renderEditor();
+  $('editor').scrollTop = y;
+  const focusLast = sel => { const all = $('editor').querySelectorAll(sel); all[all.length - 1]?.focus(); };
+  if (b.dataset.a === 'step-add') focusLast('[data-f$=".name"][data-f^="steps."]');
+  if (b.dataset.a === 'item-add' || b.dataset.a === 'sec-add') focusLast('[data-f$=".name"][data-f^="library."]');
+});
+
+function validate(d) {
+  if (!d.title.trim()) return 'Add a title.';
+  if (!String(d.id).trim()) return 'Add a module ID.';
+  if (mode !== 'edit' && modules.some(m => m.id === String(d.id).trim())) return `The ID “${d.id}” is already used. Pick another.`;
+  if (!String(d.phase || '').trim()) return 'Pick a phase.';
+  if (d.steps.some(s => !s.name.trim())) return 'Every step needs a name (or remove the empty ones).';
+  if (d.library.some(sec => !sec.title.trim())) return 'Every links section needs a title.';
+  if (d.library.some(sec => sec.items.some(it => !it.name.trim() || !it.url.trim()))) return 'Every link needs a name and a URL.';
+  return null;
+}
+
+$('save-btn').onclick = async () => {
+  const status = $('save-status');
+  const problem = validate(draft);
+  if (problem) { status.textContent = problem; status.className = 'status error'; return; }
+  const row = {
+    id: String(draft.id).trim(),
+    sort_order: Number(draft.sort_order) || 0,
+    phase: String(draft.phase).trim(),
+    title: draft.title.trim(),
+    tags: draft.tags,
+    description: draft.description || '',
+    video: (draft.video || '').trim(),
+    steps: draft.steps.map(s => ({ id: s.id || rid('s_'), name: s.name.trim(), content: s.content || '', tags: s.tags || [] })),
+    library: draft.library.map(sec => ({ title: sec.title.trim(),
+      items: sec.items.map(it => ({ name: it.name.trim(), url: it.url.trim(), tags: it.tags || [] })) }))
+  };
+  if (hasV2) row.published = draft.published !== false;
+
+  $('save-btn').disabled = true; status.textContent = 'Saving…'; status.className = 'status';
+  const { error } = mode === 'edit'
+    ? await sb.from('modules').update(row).eq('id', originalId)
+    : await sb.from('modules').insert(row);
+  $('save-btn').disabled = false;
+  if (error) {
+    status.textContent = error.code === '23505' ? 'That module ID is already used.' : `Couldn't save: ${error.message}`;
+    status.className = 'status error';
+    return;
+  }
+  const verb = mode === 'edit' ? 'Changes saved' : mode === 'duplicate' ? 'Duplicate saved' : 'Module created';
+  closeDrawer(true);
+  toast(verb + (hasV2 && !row.published ? ' (hidden from visitors)' : ''));
+  loadAll(row.id);
+};
+
+/* =====================================================================
+   PHASES TAB
+   ===================================================================== */
+function renderPhases() {
+  const list = $('phase-list');
+  if (!hasV2) {
+    list.innerHTML = `<div class="mod-empty">Run upgrade-v2.sql in Supabase to manage phases here.</div>`;
+    $('add-phase-btn').disabled = true;
+    return;
+  }
+  $('add-phase-btn').disabled = false;
+  if (!phases.length) { list.innerHTML = `<div class="mod-empty">No phases yet. Add your first one below.</div>`; return; }
+  list.innerHTML = phases.map((p, i) => {
+    const mods = modules.filter(m => m.phase === p.name);
+    const hid = mods.filter(m => !isPublished(m)).length;
+    return `<div class="phase-row" data-phase="${esc(p.name)}">
+      <div class="reorder">
+        <button class="icon-btn" type="button" data-pa="up" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Move phase up">▲</button>
+        <button class="icon-btn" type="button" data-pa="down" data-i="${i}" ${i === phases.length - 1 ? 'disabled' : ''} aria-label="Move phase down">▼</button>
+      </div>
+      <div>
+        <div class="phase-fields">
+          <input class="input" data-pf="name" value="${esc(p.name)}" aria-label="Phase name">
+          <input class="input" data-pf="subtitle" value="${esc(p.subtitle)}" placeholder="Subtitle (optional), shown under the phase name" aria-label="Phase subtitle">
+        </div>
+        <div class="phase-row-meta">${plural(mods.length, 'module')}${hid ? `, ${hid} hidden` : ''}</div>
+      </div>
+      <div class="phase-row-actions">
+        <button class="btn btn-primary btn-sm" type="button" data-pa="save" data-i="${i}" hidden>Save</button>
+        <button class="btn btn-quiet btn-sm" type="button" data-pa="view" data-i="${i}">View modules</button>
+        <button class="btn btn-danger-quiet btn-sm" type="button" data-pa="delete" data-i="${i}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+$('phase-list').addEventListener('input', e => {
+  const row = e.target.closest('.phase-row'); if (!row) return;
+  row.querySelector('[data-pa="save"]').hidden = false;
+});
+$('phase-list').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.dataset.pf) e.target.closest('.phase-row').querySelector('[data-pa="save"]').click();
+});
+
+$('phase-list').addEventListener('click', async e => {
+  const b = e.target.closest('[data-pa]'); if (!b || b.disabled) return;
+  const i = +b.dataset.i, p = phases[i], row = b.closest('.phase-row');
+
+  if (b.dataset.pa === 'up' || b.dataset.pa === 'down') {
+    const j = i + (b.dataset.pa === 'up' ? -1 : 1);
+    [phases[i], phases[j]] = [phases[j], phases[i]];
+    const changes = phases.map((x, k) => ({ x, n: (k + 1) * 10 })).filter(c => c.x.sort_order !== c.n);
+    changes.forEach(c => c.x.sort_order = c.n);
+    renderPhases(); refreshPhaseFilter(); renderList();
+    const res = await Promise.all(changes.map(c => sb.from('phases').update({ sort_order: c.n }).eq('name', c.x.name)));
+    if (res.some(r => r.error)) { toast("Couldn't save the new order", true); loadAll(); }
+    return;
+  }
+
+  if (b.dataset.pa === 'view') {
+    $('phase-filter').value = p.name; $('search').value = ''; $('status-filter').value = '';
+    showTab('modules'); renderList(); return;
+  }
+
+  if (b.dataset.pa === 'save') {
+    const name = row.querySelector('[data-pf="name"]').value.trim();
+    const subtitle = row.querySelector('[data-pf="subtitle"]').value.trim();
+    if (!name) { toast('A phase needs a name', true); return; }
+    if (name !== p.name && phases.some(x => x.name.toLowerCase() === name.toLowerCase())) { toast(`There's already a phase called “${name}”`, true); return; }
+    b.disabled = true;
+    const { error } = await sb.from('phases').update({ name, subtitle }).eq('name', p.name);
+    b.disabled = false;
+    if (error) { toast(`Couldn't save: ${error.message}`, true); return; }
+    toast(name !== p.name ? `Renamed to “${name}” on all its modules` : 'Phase saved');
+    loadAll();
+    return;
+  }
+
+  if (b.dataset.pa === 'delete') {
+    const mods = modules.filter(m => m.phase === p.name);
+    const others = phases.filter(x => x.name !== p.name);
+    let extra = '';
+    if (mods.length) {
+      extra = `<label class="field"><span>What should happen to its ${plural(mods.length, 'module')}?</span>
+        <select class="input" id="phase-del-target">
+          ${others.map(o => `<option value="move:${esc(o.name)}">Move them to ${esc(o.name)}</option>`).join('')}
+          <option value="delete">Delete them too (can’t be undone)</option>
+        </select></label>`;
+    }
+    const ok = await ask({
+      title: `Delete phase “${p.name}”?`,
+      text: mods.length ? `This phase still has ${plural(mods.length, 'module')}.` : 'This phase has no modules, so nothing else is affected.',
+      extra
+    });
+    if (!ok) return;
+    if (mods.length) {
+      const choice = $('phase-del-target').value;
+      const res = choice === 'delete'
+        ? await sb.from('modules').delete().eq('phase', p.name)
+        : await sb.from('modules').update({ phase: choice.slice(5) }).eq('phase', p.name);
+      if (res.error) { toast(`Couldn't update its modules: ${res.error.message}`, true); return; }
+    }
+    const { error } = await sb.from('phases').delete().eq('name', p.name);
+    if (error) { toast(`Couldn't delete: ${error.message}`, true); loadAll(); return; }
+    toast('Phase deleted');
+    loadAll();
+  }
+});
+
+$('add-phase-btn').onclick = async () => {
+  const name = $('new-phase-name').value.trim(), subtitle = $('new-phase-sub').value.trim();
+  if (!name) { $('new-phase-name').focus(); toast('Type a name for the new phase', true); return; }
+  if (phases.some(x => x.name.toLowerCase() === name.toLowerCase())) { toast(`There's already a phase called “${name}”`, true); return; }
+  const sort_order = phases.reduce((n, x) => Math.max(n, x.sort_order < 1e6 ? x.sort_order : 0), 0) + 10;
+  $('add-phase-btn').disabled = true;
+  const { error } = await sb.from('phases').insert({ name, subtitle, sort_order });
+  $('add-phase-btn').disabled = false;
+  if (error) { toast(`Couldn't add: ${error.message}`, true); return; }
+  $('new-phase-name').value = ''; $('new-phase-sub').value = '';
+  toast(`Added “${name}”. It appears on the site once it has a visible module.`);
+  loadAll();
+};
+$('new-phase-sub').addEventListener('keydown', e => { if (e.key === 'Enter') $('add-phase-btn').click(); });
+$('new-phase-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('add-phase-btn').click(); });
+
+/* =====================================================================
+   APPEARANCE TAB
+   ===================================================================== */
+let apSaved = null, apDraft = null, apDirty = false, apLoaded = false;
+let colorMode = 'light', previewMode = 'light';
+
+const COLOR_FIELDS = [
+  ['primary', 'Main colour', 'Buttons, phase titles, checkboxes'],
+  ['header', 'Header background', 'The bar at the top of the page'],
+  ['accent', 'Accent', 'Slogan under the logo, announcement banner'],
+  ['background', 'Page background', 'Behind the module cards'],
+  ['panel', 'Cards & panels', 'Module cards, side panels, pop-ups'],
+  ['text', 'Main text', 'Titles and step names'],
+  ['muted', 'Secondary text', 'Descriptions and step details'],
+  ['border', 'Borders & lines', 'Card outlines and dividers']
+];
+const SIZE_FIELDS = [
+  ['brand', 'Brand name', 0.8, 2.6, 0.05],
+  ['phase', 'Phase titles', 0.6, 1.6, 0.05],
+  ['module_title', 'Module titles', 0.9, 2.4, 0.05],
+  ['module_desc', 'Module descriptions', 0.7, 1.4, 0.05],
+  ['step_name', 'Step names', 0.7, 1.4, 0.05],
+  ['step_content', 'Step details', 0.7, 1.4, 0.05],
+  ['button', 'Buttons', 0.55, 1.1, 0.05]
+];
+
+async function openAppearance() {
+  if (!hasV2) {
+    $('appearance-form').innerHTML = `<div class="block"><p class="muted">Run upgrade-v2.sql in Supabase to unlock appearance settings.</p></div>`;
+    return;
+  }
+  if (apLoaded) return;
+  $('appearance-form').innerHTML = '<div class="loading">Loading settings…</div>';
+  const { data, error } = await sb.from('site_settings').select('settings').eq('id', 1).maybeSingle();
+  if (error) { $('appearance-form').innerHTML = `<div class="block"><p class="muted">Couldn't load settings: ${esc(error.message)}</p></div>`; return; }
+  apSaved = eocoMerge(EOCO_DEFAULTS, data ? data.settings : {});
+  apDraft = clone(apSaved);
+  apLoaded = true;
+  Object.keys(EOCO_FONTS).forEach(eocoLoadFont);   // so the font menu can show each font
+  previewMode = colorMode = apDraft.default_mode === 'dark' ? 'dark' : 'light';
+  renderAppearance();
+  const frame = $('preview-frame');
+  frame.onload = pushPreview;
+  frame.src = 'index.html?preview=1';
+  syncPreviewButtons();
+}
+
+function fontOptions(current) {
+  return Object.keys(EOCO_FONTS).map(n => `<option value="${esc(n)}" style="font-family:${esc(EOCO_FONTS[n].css)}" ${n === current ? 'selected' : ''}>${n === 'System' ? 'System default' : esc(n)}</option>`).join('');
+}
+
+function renderAppearance() {
+  const s = apDraft, c = s.colors[colorMode];
+  const sizeLabel = v => `${Math.round(v * 16)}px`;
+  $('appearance-form').innerHTML = `
+    <div class="block">
+      <div class="block-head"><h3>Header text</h3></div>
+      <div class="grid-2">
+        <label class="field"><span>Brand name</span><input class="input" data-s="brand.name" value="${esc(s.brand.name)}"></label>
+        <label class="field"><span>Slogan</span><input class="input" data-s="brand.slogan" value="${esc(s.brand.slogan)}"></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span>Page title</span><input class="input" data-s="brand.page_title" value="${esc(s.brand.page_title)}"></label>
+        <label class="field"><span>Browser tab title</span><input class="input" data-s="brand.browser_title" value="${esc(s.brand.browser_title)}"></label>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h3>Colours</h3>
+        <div class="seg" role="group" aria-label="Which colours to edit">
+          <button type="button" data-cmode="light" aria-pressed="${colorMode === 'light'}">Light mode</button>
+          <button type="button" data-cmode="dark" aria-pressed="${colorMode === 'dark'}">Dark mode</button>
+        </div>
+      </div>
+      ${COLOR_FIELDS.map(([k, label, hint]) => `
+        <div class="color-row">
+          <input type="color" data-s="colors.${colorMode}.${k}" value="${esc(c[k])}" aria-label="${esc(label)}">
+          <div class="lbl"><b>${label}</b><small>${hint}</small></div>
+          <input class="input" data-hex="colors.${colorMode}.${k}" value="${esc(c[k])}" aria-label="${esc(label)} hex code" maxlength="7">
+        </div>`).join('')}
+      <label class="field" style="margin-top:14px"><span>New visitors start in</span>
+        <select class="input" data-s="default_mode">
+          <option value="light" ${s.default_mode === 'light' ? 'selected' : ''}>Light mode</option>
+          <option value="dark" ${s.default_mode === 'dark' ? 'selected' : ''}>Dark mode</option>
+        </select>
+        <small>Visitors can still switch with the Dark Mode button.</small></label>
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h3>Fonts</h3></div>
+      <label class="field"><span>Headings</span>
+        <select class="input" data-s="fonts.heading">${fontOptions(s.fonts.heading)}</select>
+        <small style="font-family:${esc((EOCO_FONTS[s.fonts.heading] || EOCO_FONTS.System).css)};font-size:1.05rem;font-weight:700;color:var(--text)" id="heading-sample">Business Bank Account</small></label>
+      <label class="field"><span>Body text</span>
+        <select class="input" data-s="fonts.body">${fontOptions(s.fonts.body)}</select>
+        <small style="font-family:${esc((EOCO_FONTS[s.fonts.body] || EOCO_FONTS.System).css)};font-size:.95rem;color:var(--text)" id="body-sample">Research rates and fees. Check the Provincial Leaders list for local options.</small></label>
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h3>Text sizes</h3><span>Sizes shown at 100%</span></div>
+      <div class="range-row">
+        <label for="rng-scale">Overall text size</label>
+        <input type="range" id="rng-scale" data-s="sizes.scale" min="80" max="130" step="5" value="${s.sizes.scale}">
+        <output data-out="sizes.scale">${s.sizes.scale}%</output>
+      </div>
+      ${SIZE_FIELDS.map(([k, label, min, max, step]) => `
+        <div class="range-row">
+          <label for="rng-${k}">${label}</label>
+          <input type="range" id="rng-${k}" data-s="sizes.${k}" min="${min}" max="${max}" step="${step}" value="${s.sizes[k]}">
+          <output data-out="sizes.${k}">${sizeLabel(s.sizes[k])}</output>
+        </div>`).join('')}
+      <div class="range-row">
+        <label for="rng-radius">Corner roundness</label>
+        <input type="range" id="rng-radius" data-s="shape.radius" min="0" max="20" step="1" value="${s.shape.radius}">
+        <output data-out="shape.radius">${s.shape.radius}px</output>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h3>Announcement banner</h3><span>A strip across the top of the site</span></div>
+      <label class="check"><input type="checkbox" data-s="banner.enabled" ${s.banner.enabled ? 'checked' : ''}>
+        <span><b>Show the banner</b><small>Visitors can close it. It comes back if you change the message.</small></span></label>
+      <label class="field"><span>Message</span><input class="input" data-s="banner.text" value="${esc(s.banner.text)}" placeholder="e.g. New: Payroll module is live"></label>
+      <div class="grid-2">
+        <label class="field"><span>Link (optional)</span><input class="input" data-s="banner.link" value="${esc(s.banner.link)}" placeholder="https://"></label>
+        <label class="field"><span>Link text</span><input class="input" data-s="banner.link_text" value="${esc(s.banner.link_text)}"></label>
+      </div>
+    </div>
+
+    <div class="sticky-save">
+      <span class="status" id="ap-status">${apDirty ? 'Unsaved changes' : 'All changes saved'}</span>
+      <button class="btn btn-quiet btn-sm" type="button" id="ap-reset">Reset to defaults</button>
+      <button class="btn btn-quiet btn-sm" type="button" id="ap-discard" ${apDirty ? '' : 'disabled'}>Discard</button>
+      <button class="btn btn-primary" type="button" id="ap-save" ${apDirty ? '' : 'disabled'}>Save &amp; publish</button>
+    </div>`;
+}
+
+function setPath(obj, path, val) {
+  const keys = path.split('.'); let o = obj;
+  keys.slice(0, -1).forEach(k => o = o[k]);
+  o[keys[keys.length - 1]] = val;
+}
+function getPath(obj, path) { return path.split('.').reduce((o, k) => o[k], obj); }
+
+let previewQueued = false;
+function pushPreview() {
+  if (previewQueued) return;
+  previewQueued = true;
+  requestAnimationFrame(() => {
+    previewQueued = false;
+    const w = $('preview-frame').contentWindow;
+    if (w && apDraft) w.postMessage({ type: 'eoco-preview', settings: apDraft, mode: previewMode }, '*');
+  });
+}
+
+function markApDirty(v) {
+  apDirty = v;
+  const st = $('ap-status'); if (!st) return;
+  st.textContent = v ? 'Unsaved changes' : 'All changes saved'; st.className = 'status';
+  $('ap-save').disabled = !v; $('ap-discard').disabled = !v;
+}
+
+function syncPreviewButtons() {
+  document.querySelectorAll('[data-pmode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pmode === previewMode));
+}
+
+$('appearance-form').addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.hex) {
+    let v = el.value.trim(); if (v && v[0] !== '#') v = '#' + v;
+    if (!/^#[0-9a-f]{6}$/i.test(v)) return;              // wait until it's a full colour
+    setPath(apDraft, el.dataset.hex, v.toUpperCase());
+    const picker = $('appearance-form').querySelector(`[data-s="${el.dataset.hex}"]`); if (picker) picker.value = v;
+  } else if (el.dataset.s) {
+    const val = el.type === 'checkbox' ? el.checked : el.type === 'range' ? Number(el.value) : el.value;
+    setPath(apDraft, el.dataset.s, el.type === 'color' ? val.toUpperCase() : val);
+    if (el.type === 'color') { const hex = $('appearance-form').querySelector(`[data-hex="${el.dataset.s}"]`); if (hex) hex.value = val.toUpperCase(); }
+    const out = $('appearance-form').querySelector(`[data-out="${el.dataset.s}"]`);
+    if (out) out.textContent = el.dataset.s === 'sizes.scale' ? val + '%' : el.dataset.s === 'shape.radius' ? val + 'px' : Math.round(val * 16) + 'px';
+    if (el.dataset.s === 'fonts.heading') $('heading-sample').style.fontFamily = EOCO_FONTS[val].css;
+    if (el.dataset.s === 'fonts.body') $('body-sample').style.fontFamily = EOCO_FONTS[val].css;
+  } else return;
+  markApDirty(true);
+  pushPreview();
+});
+$('appearance-form').addEventListener('change', e => { if (e.target.tagName === 'SELECT' || e.target.type === 'checkbox') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
+$('appearance-form').addEventListener('focusout', e => {
+  const el = e.target; if (!el.dataset.hex) return;
+  el.value = getPath(apDraft, el.dataset.hex);        // snap back if they typed something invalid
+});
+
+$('appearance-form').addEventListener('click', async e => {
+  const cm = e.target.closest('[data-cmode]');
+  if (cm) {
+    colorMode = previewMode = cm.dataset.cmode;
+    renderAppearance(); syncPreviewButtons(); pushPreview();
+    return;
+  }
+  const id = e.target.id;
+  if (id === 'ap-reset') {
+    const ok = await ask({ title: 'Reset appearance to the defaults?', text: 'All colours, fonts, sizes, header text and the banner go back to the original EOCO look. Nothing changes on the site until you press Save & publish.', ok: 'Reset', danger: false });
+    if (!ok) return;
+    apDraft = clone(EOCO_DEFAULTS); renderAppearance(); markApDirty(true); pushPreview();
+  }
+  if (id === 'ap-discard') { apDraft = clone(apSaved); renderAppearance(); markApDirty(false); pushPreview(); }
+  if (id === 'ap-save') {
+    $('ap-save').disabled = true; $('ap-status').textContent = 'Saving…';
+    const { error } = await sb.from('site_settings').upsert({ id: 1, settings: apDraft });
+    if (error) { $('ap-status').textContent = `Couldn't save: ${error.message}`; $('ap-status').className = 'status error'; $('ap-save').disabled = false; return; }
+    apSaved = clone(apDraft); markApDirty(false);
+    $('ap-status').textContent = 'Saved. Live on your site now.'; $('ap-status').className = 'status ok';
+    toast('Appearance published');
+  }
+});
+
+document.querySelectorAll('[data-pmode]').forEach(b => b.onclick = () => { previewMode = b.dataset.pmode; syncPreviewButtons(); pushPreview(); });
+
+/* =====================================================================
+   INSIGHTS TAB
+   ===================================================================== */
+const LABELS = {
+  province: { CAN: 'All of Canada', AB: 'Alberta', BC: 'British Columbia', MB: 'Manitoba', NB: 'New Brunswick', NL: 'Newfoundland & Labrador',
+              NS: 'Nova Scotia', ON: 'Ontario', PE: 'Prince Edward Island', QC: 'Quebec', SK: 'Saskatchewan', NT: 'Northwest Territories', NU: 'Nunavut', YT: 'Yukon' },
+  industry: { ALL: 'Show everything', General: 'General Contractor', HVAC: 'HVAC Technician', Carpenter: 'Carpenter / Framer', Painter: 'Painter / Decorator',
+              Welder: 'Welder / Metalwork', Flooring: 'Flooring / Tile', Drywall: 'Drywall / Insulation', Mason: 'Masonry', Consultant: 'Professional / Consultant',
+              RealEstate: 'Real Estate / Landlord', Ecommerce: 'E-Commerce', Health: 'Health & Beauty' },
+  software: { ALL: 'Undecided', QBO: 'QuickBooks Online', XERO: 'Xero', FRESHBOOKS: 'FreshBooks' }
+};
+const label = (kind, v) => (LABELS[kind] && LABELS[kind][v]) || v || '—';
+let lastInsights = null;
+
+async function loadInsights() {
+  const box = $('insights');
+  if (!hasV2) { box.innerHTML = `<div class="empty"><h2>One step needed</h2><p>Run upgrade-v2.sql in Supabase to turn on Insights.</p></div>`; return; }
+  box.innerHTML = '<div class="loading">Loading…</div>';
+  const { data, error } = await sb.rpc('admin_insights');
+  if (error) { box.innerHTML = `<div class="empty"><h2>Couldn't load insights</h2><p>${esc(error.message)}</p></div>`; return; }
+  lastInsights = data;
+  const d = data;
+
+  const stepCount = {};
+  (d.steps || []).forEach(s => { stepCount[s.module_id + '::' + s.step_id] = s.n; });
+  const order = phases.map(p => p.name);
+  const mods = [...modules].sort((a, b) => (order.indexOf(a.phase) - order.indexOf(b.phase)) || (a.sort_order - b.sort_order));
+  const modRows = mods.map(m => {
+    const started = (d.module_users || {})[m.id] || 0;
+    const steps = m.steps || [];
+    const checks = steps.reduce((n, s) => n + (stepCount[m.id + '::' + s.id] || 0), 0);
+    const pct = started && steps.length ? Math.round(checks / (started * steps.length) * 100) : 0;
+    let weakest = null;
+    if (started && steps.length > 1) {
+      steps.forEach(s => { const n = stepCount[m.id + '::' + s.id] || 0; if (!weakest || n < weakest.n) weakest = { name: s.name, n }; });
+    }
+    return `<tr><td>${esc(m.title)}${isPublished(m) ? '' : ' <span class="chip chip-hidden">Hidden</span>'}<div class="muted" style="font-size:.8rem">${esc(m.phase)}</div></td>
+      <td class="num">${started}</td>
+      <td style="min-width:160px"><div style="display:flex;gap:8px;align-items:center"><div class="bar" style="flex:1"><i style="width:${pct}%"></i></div><span class="muted" style="font-size:.8rem;width:36px;text-align:right">${pct}%</span></div></td>
+      <td class="muted" style="white-space:normal;min-width:160px">${weakest ? `${esc(weakest.name)} <span style="font-size:.8rem">(${weakest.n})</span>` : '—'}</td></tr>`;
+  }).join('');
+
+  const bars = (obj, kind) => {
+    const entries = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
+    if (!entries.length) return '<p class="muted" style="margin:0 0 12px">No profiles yet.</p>';
+    const max = Math.max(...entries.map(e => e[1]));
+    return `<ul class="bar-list">${entries.map(([k, n]) => `<li><span>${esc(label(kind, k))}</span><div class="bar"><i style="width:${n / max * 100}%"></i></div><span class="n">${n}</span></li>`).join('')}</ul>`;
+  };
+
+  const users = d.recent_users || [];
+  box.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><b>${d.total_users}</b><span>Signed-up users</span></div>
+      <div class="stat"><b>${d.new_users_30d}</b><span>New in the last 30 days</span></div>
+      <div class="stat"><b>${d.active_users_7d}</b><span>Checked a step this week</span></div>
+      <div class="stat"><b>${d.total_checks}</b><span>Steps completed, all time</span></div>
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h3>Module progress</h3><span>How far people get once they start a module</span></div>
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Module</th><th class="num">Started</th><th>Average completion</th><th>Least-completed step</th></tr></thead>
+        <tbody>${modRows || '<tr><td colspan="4" class="muted">No modules.</td></tr>'}</tbody>
+      </table></div>
+    </div>
+
+    <div class="two-col">
+      <div class="block"><div class="block-head"><h3>Region</h3></div>${bars(d.by_province, 'province')}</div>
+      <div class="block"><div class="block-head"><h3>Industry</h3></div>${bars(d.by_industry, 'industry')}</div>
+    </div>
+    <div class="two-col">
+      <div class="block"><div class="block-head"><h3>Accounting software</h3></div>${bars(d.by_software, 'software')}</div>
+      <div></div>
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h3>Users</h3>
+        <button class="btn btn-quiet btn-sm" type="button" id="users-csv" ${users.length ? '' : 'disabled'}>Download as CSV</button></div>
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Email</th><th>Joined</th><th>Last sign-in</th><th>Region</th><th>Industry</th><th>Software</th><th class="num">Steps done</th></tr></thead>
+        <tbody>${users.length ? users.map(u => `<tr><td>${esc(u.email)}</td><td>${esc(new Date(u.created_at).toLocaleDateString())}</td>
+          <td>${esc(timeAgo(u.last_sign_in_at))}</td><td>${esc(label('province', u.province))}</td><td>${esc(label('industry', u.industry))}</td>
+          <td>${esc(label('software', u.software))}</td><td class="num">${u.steps_done}</td></tr>`).join('')
+          : '<tr><td colspan="7" class="muted">Nobody has signed in yet. Visitors who use the site without signing in aren’t counted.</td></tr>'}</tbody>
+      </table></div>
+      ${users.length >= 200 ? '<p class="muted" style="font-size:.85rem">Showing the 200 most recent users.</p>' : ''}
+    </div>`;
+}
+$('refresh-insights').onclick = loadInsights;
+$('insights').addEventListener('click', e => {
+  if (e.target.id !== 'users-csv' || !lastInsights) return;
+  const rows = (lastInsights.recent_users || []).map(u => ({ ...u,
+    province: label('province', u.province), industry: label('industry', u.industry), software: label('software', u.software) }));
+  downloadFile(`eoco-users-${new Date().toISOString().slice(0, 10)}.csv`,
+    toCSV(rows, ['email', 'created_at', 'last_sign_in_at', 'province', 'industry', 'software', 'steps_done']), 'text/csv');
+});
+
+/* =====================================================================
+   BACKUP TAB
+   ===================================================================== */
+const MODULE_COLS = ['id', 'sort_order', 'phase', 'title', 'tags', 'description', 'video', 'steps', 'library'];
+
+async function fetchEverything() {
+  const [m, p, s] = await Promise.all([
+    sb.from('modules').select('*').order('sort_order').order('id'),
+    hasV2 ? sb.from('phases').select('name, subtitle, sort_order').order('sort_order') : Promise.resolve({ data: [] }),
+    hasV2 ? sb.from('site_settings').select('settings').eq('id', 1).maybeSingle() : Promise.resolve({ data: null })
+  ]);
+  const err = m.error || p.error || s.error;
+  if (err) throw err;
+  return { modules: m.data || [], phases: p.data || [], settings: s.data ? s.data.settings : null };
+}
+
+$('backup-json').onclick = async () => {
+  try {
+    const all = await fetchEverything();
+    const file = { app: 'eoco-roadmap', version: 2, exported_at: new Date().toISOString(), ...all };
+    downloadFile(`eoco-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(file, null, 2), 'application/json');
+    toast(`Backup downloaded: ${plural(all.modules.length, 'module')}, ${plural(all.phases.length, 'phase')}`);
+  } catch (e) { toast(`Backup failed: ${e.message}`, true); }
+};
+
+$('backup-csv').onclick = async () => {
+  try {
+    const { modules: mods } = await fetchEverything();
+    downloadFile('modules.csv', toCSV(mods, hasV2 ? [...MODULE_COLS, 'published'] : MODULE_COLS), 'text/csv');
+  } catch (e) { toast(`Download failed: ${e.message}`, true); }
+};
+
+$('restore-file').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  let data;
+  try { data = JSON.parse(await f.text()); } catch { toast("That file isn't a valid backup", true); return; }
+  if (data && data.app === 'eoco-tools') {           // a backup made by the main admin
+    const t = EOCO.toolSection(data, 'roadmap');
+    if (!t) { toast('That backup has no roadmap content', true); return; }
+    const ss = (t.site_settings || [])[0];
+    data = { exported_at: data.exported_at, modules: t.modules || [], phases: t.phases || [], settings: ss ? ss.settings : null };
+  }
+  if (!data || !Array.isArray(data.modules)) { toast("That file isn't an EOCO backup", true); return; }
+
+  const when = data.exported_at ? new Date(data.exported_at).toLocaleString() : 'an unknown date';
+  const ok = await ask({
+    title: 'Restore this backup?',
+    text: `From ${when}: ${plural(data.modules.length, 'module')}, ${plural((data.phases || []).length, 'phase')}${data.settings ? ' and appearance settings' : ''}. Modules with the same ID will be replaced by the backup version.`,
+    ok: 'Restore', danger: false
+  });
+  if (!ok) return;
+
+  try {
+    if (hasV2) {
+      const ph = [...(data.phases || [])];
+      data.modules.forEach(m => { if (m.phase && !ph.some(p => p.name === m.phase)) ph.push({ name: m.phase, subtitle: '', sort_order: 1000 }); });
+      if (ph.length) {
+        const r = await sb.from('phases').upsert(ph.map(p => ({ name: p.name, subtitle: p.subtitle || '', sort_order: p.sort_order || 0 })), { onConflict: 'name' });
+        if (r.error) throw r.error;
+      }
+    }
+    const rows = data.modules.map(m => {
+      const r = {}; MODULE_COLS.forEach(c => { if (m[c] !== undefined) r[c] = m[c]; });
+      if (hasV2) r.published = m.published !== false;
+      return r;
+    });
+    if (rows.length) {
+      const r = await sb.from('modules').upsert(rows, { onConflict: 'id' });
+      if (r.error) throw r.error;
+    }
+    if (hasV2 && data.settings) {
+      const r = await sb.from('site_settings').upsert({ id: 1, settings: data.settings });
+      if (r.error) throw r.error;
+      apLoaded = false; apDirty = false;
+    }
+    toast('Backup restored');
+    loadAll();
+  } catch (err) { toast(`Restore failed: ${err.message}`, true); }
+};
+
+
+
+boot();
+</script>
+</body>
+</html>

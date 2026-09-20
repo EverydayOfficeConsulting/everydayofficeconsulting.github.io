@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EOCO | Simple Systems</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root { --evergreen: #2d5a27; --dark: #1a1a1a; --border-gray: #ddd; }
+        body { font-family: sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; padding: 10px; margin: 0; }
+
+        .card {
+            background: white; padding: 20px; border-radius: 10px;
+            border: 3px solid var(--evergreen);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 350px; width: 100%;
+            text-align: center; position: relative; min-height: 400px; box-sizing: border-box;
+        }
+
+        #gate { display: none; color: black; }
+        #calculator { display: none; }
+        #loading { color: #888; font-size: 0.85rem; padding-top: 150px; }
+
+        .popup-box {
+            display: none; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            width: 85%; background: white; color: black; border: 3px solid var(--evergreen);
+            border-radius: 8px; z-index: 100; flex-direction: column; padding: 20px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .close-x { position: absolute; top: 8px; right: 12px; font-size: 1.2rem; cursor: pointer; font-weight: bold; color: var(--evergreen); background: none; border: 0; }
+        .guide-title { font-size: 1rem; font-weight: 800; color: var(--evergreen); margin-bottom: 8px; }
+        .guide-lines { font-size: 0.8rem; color: #333; text-align: left; margin: 0; padding-left: 18px; }
+
+        h1 { margin: 0; color: var(--dark); font-size: 1.7rem; font-weight: 800; }
+        .sub-brand { color: var(--evergreen); font-weight: bold; font-size: 0.75rem; margin-bottom: 15px; text-transform: uppercase; }
+
+        label { display: block; margin: 8px 0 2px; font-weight: 600; font-size: 0.75rem; color: #666; text-align: left; }
+        input { width: 100%; padding: 10px; border: 2px solid var(--border-gray); border-radius: 8px; font-size: 1rem; box-sizing: border-box; text-align: center; margin-bottom: 8px; color: black; }
+        input:focus { outline: none; border-color: var(--evergreen); }
+
+        .rate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; text-align: left; }
+        .ei-math { font-size: 0.65rem; color: #d32f2f; font-style: italic; margin-top: 2px; min-height: 10px; font-weight: bold; }
+
+        .result-box { background: var(--dark); color: white; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        .result-value { font-size: 2.2rem; font-weight: 800; margin: 0; }
+        .result-label { font-size: 0.6rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .btn { border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; width: 100%; margin-top: 8px; transition: 0.3s; }
+        .btn-green { background: var(--evergreen); color: white; }
+        .btn-gray { background: #eee; color: #444; }
+        .btn-pdf-idle { background: #eee; color: #888; }
+        .btn-pdf-ready { background: var(--dark); color: white; }
+        .btn:disabled { opacity: .6; cursor: wait; }
+        .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .gate-msg { font-size: 0.8rem; margin-bottom: 15px; }
+        .gate-error { color: #d32f2f; font-size: 0.75rem; min-height: 1em; margin-top: 6px; }
+
+        .qr-section { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ddd; display: flex; flex-direction: column; align-items: center; }
+        #qrcode { margin-top: 5px; padding: 5px; background: white; border: 1px solid #eee; min-height: 75px; }
+
+        .footer { font-size: 0.65rem; color: #777; margin-top: 15px; line-height: 1.5; }
+        .footer a, .disclaimer-link { color: var(--evergreen); cursor: pointer; text-decoration: underline; font-weight: bold; background: none; border: 0; font-size: inherit; padding: 0; font-family: inherit; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="loading">Loading…</div>
+
+    <div id="gate">
+        <h1 data-text="brand.title">EOCO</h1>
+        <div class="sub-brand" data-text="brand.tagline">Simple Systems. Better Business.</div>
+        <p class="gate-msg" data-text="gate.prompt">Enter Access Code to unlock.</p>
+        <input type="password" id="passInput" placeholder="Access code" autocomplete="off">
+        <button class="btn btn-green" id="unlockBtn" onclick="handleUnlock()" data-text="gate.button">ACCESS CALCULATOR</button>
+        <div class="gate-error" id="gateError" role="alert"></div>
+    </div>
+
+    <div id="calculator">
+        <div id="welcomePopup" class="popup-box" role="dialog" aria-labelledby="guideTitle">
+            <button class="close-x" onclick="closePopup()" aria-label="Close guide">×</button>
+            <div class="guide-title" id="guideTitle" data-text="guide.title">Quick Guide</div>
+            <ul class="guide-lines" id="guideLines"></ul>
+        </div>
+
+        <h1 data-text="brand.title">EOCO</h1>
+        <div class="sub-brand" data-text="brand.tagline">Simple Systems. Better Business.</div>
+
+        <label for="empName" data-text="labels.name">EMPLOYEE NAME / ROLE</label>
+        <input type="text" id="empName" oninput="activatePDF()">
+
+        <label for="wage" data-text="labels.wage">WAGE OR SALARY ($)</label>
+        <input type="number" id="wage" step="0.01" oninput="runMath(); activatePDF()">
+
+        <div class="rate-grid">
+            <div><label for="vac" data-text="labels.vac">Vacation %</label><input type="number" id="vac" step="0.01" oninput="runMath(); activatePDF()"></div>
+            <div><label for="cpp" data-text="labels.cpp">CPP %</label><input type="number" id="cpp" step="0.01" oninput="runMath(); activatePDF()"></div>
+            <div>
+                <label for="ei" data-text="labels.ei">EI %</label>
+                <input type="number" id="ei" step="0.01" oninput="runMath(); activatePDF()">
+                <div id="ei-actual" class="ei-math"></div>
+            </div>
+            <div><label for="wcb" data-text="labels.wcb">WCB Rate</label><input type="number" id="wcb" step="0.01" oninput="runMath(); activatePDF()"></div>
+        </div>
+
+        <button class="btn btn-green" onclick="saveData()" data-text="labels.save_button">SAVE MY RATES</button>
+        <div class="button-group">
+            <button class="btn btn-gray" onclick="resetData()" data-text="labels.reset_button">RESET</button>
+            <button id="pdfBtn" class="btn btn-pdf-idle" onclick="getPDF()" data-text="labels.pdf_button">DOWNLOAD PDF</button>
+        </div>
+
+        <div class="result-box">
+            <div id="total" class="result-value">$0.00</div>
+            <div class="result-label" data-text="labels.result">Total Real Hourly Cost</div>
+        </div>
+
+        <div class="qr-section" id="qrSection">
+            <div id="qrcode"></div>
+        </div>
+
+        <div class="footer">
+            <span data-text="footer.note"></span><br>
+            <button class="disclaimer-link" onclick="alert(S.footer.disclaimer)" data-text="footer.disclaimer_link">View Terms &amp; Disclaimer</button><br>
+            <span data-text="footer.copyright"></span><br>
+            <a href="../" data-text="footer.more_tools">More EOCO tools</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../config.js"></script>
+<script>
+// ---------------------------------------------------------------------
+// Everything below the defaults is controlled from the calculator admin
+// (tools.eoco.ca/newcalculator/admin.html). These defaults are only used
+// if the database can't be reached or a setting was never changed.
+// ---------------------------------------------------------------------
+const CALC_DEFAULTS = {
+    brand:  { title: 'EOCO', tagline: 'Simple Systems. Better Business.', browser_title: 'EOCO | Simple Systems' },
+    gate:   { enabled: true, version: 1, prompt: 'Enter Access Code to unlock.', button: 'ACCESS CALCULATOR', wrong: 'That code isn’t right. Please try again.' },
+    rates:  { wage: 35.00, vac: 4.0, cpp: 5.95, ei: 1.63, ei_multiplier: 1.4, wcb: 0.00 },
+    labels: { name: 'EMPLOYEE NAME / ROLE', name_placeholder: 'e.g. Lead Carpenter', wage: 'WAGE OR SALARY ($)',
+              vac: 'Vacation %', cpp: 'CPP % (2026 NS)', ei: 'EI % (2026 NS)', wcb: 'WCB Rate',
+              ei_employer: 'Employer Rate', result: 'Total Real Hourly Cost',
+              save_button: 'SAVE MY RATES', reset_button: 'RESET', pdf_button: 'DOWNLOAD PDF', saved_message: 'Rates Saved!' },
+    guide:  { enabled: true, title: 'Quick Guide', lines: ['Enter Employee or Role Name', 'Input base hourly wage', 'Verify Nova Scotia 2026 rates', 'Hit "Save" to remember settings'] },
+    footer: { note: '*Vacation first, then NS 2026 taxes. Employer EI at 1.4x.', disclaimer_link: 'View Terms & Disclaimer',
+              disclaimer: 'This tool is for budgetary estimation only. While we strive for accuracy based on 2026 Nova Scotia standards, EOCO is not liable for discrepancies.',
+              copyright: '© 2026 EOCO - Nova Scotia', more_tools: 'More EOCO tools' },
+    pdf:    { title: 'EOCO | Simple Systems', subtitle: 'Real-Cost Calculation Report', rates_heading: 'Calculated Burden Rates (NS 2026):',
+              result: 'TOTAL REAL HOURLY COST', footer: '*Estimate based on Nova Scotia standards. © 2026 EOCO - Nova Scotia' },
+    qr:     { enabled: true, url: '' },
+    colors: { brand: '#2d5a27', dark: '#1a1a1a', background: '#f4f4f9' }
+};
+
+const TOOL_ID = 'calculator';
+const PREVIEW = new URLSearchParams(location.search).has('preview');
+const cfg = window.EOCO_CONFIG || {};
+let sb = null;
+try { if (cfg.SUPABASE_URL && window.supabase) sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY); } catch (e) {}
+
+let S = merge(CALC_DEFAULTS, {});
+let previewOverride = null;
+
+function merge(base, over) {
+    const out = Array.isArray(base) ? [...base] : { ...base };
+    if (!over || typeof over !== 'object') return out;
+    Object.keys(over).forEach(k => {
+        const b = base ? base[k] : undefined, o = over[k];
+        if (o && typeof o === 'object' && !Array.isArray(o) && b && typeof b === 'object' && !Array.isArray(b)) out[k] = merge(b, o);
+        else if (o !== undefined && o !== null) out[k] = o;
+    });
+    return out;
+}
+const get = path => path.split('.').reduce((o, k) => (o == null ? o : o[k]), S);
+const $ = id => document.getElementById(id);
+
+function logEvent(event) {
+    if (PREVIEW || !sb) return;
+    sb.from('tool_events').insert({ tool_id: TOOL_ID, event }).then(() => {}, () => {});
+}
+
+// ---------- apply admin settings to the page ----------
+function applySettings(raw) {
+    S = merge(CALC_DEFAULTS, raw || {});
+    const hex = v => /^#[0-9a-f]{3,8}$/i.test(v || '');
+    const root = document.documentElement.style;
+    if (hex(S.colors.brand)) root.setProperty('--evergreen', S.colors.brand);
+    if (hex(S.colors.dark)) root.setProperty('--dark', S.colors.dark);
+    if (hex(S.colors.background)) document.body.style.backgroundColor = S.colors.background;
+    document.title = S.brand.browser_title || S.brand.title;
+    document.querySelectorAll('[data-text]').forEach(el => { el.textContent = get(el.dataset.text) ?? ''; });
+    $('empName').placeholder = S.labels.name_placeholder || '';
+    $('guideLines').innerHTML = '';
+    (S.guide.lines || []).filter(Boolean).forEach(line => { const li = document.createElement('li'); li.textContent = line; $('guideLines').appendChild(li); });
+    $('qrSection').style.display = S.qr.enabled ? '' : 'none';
+    if (S.qr.enabled) drawQR();
+    runMath();
+}
+
+function drawQR() {
+    try {
+        const qrDiv = $('qrcode');
+        qrDiv.innerHTML = '';
+        const target = S.qr.url || (location.origin + location.pathname.replace(/index\.html$/, ''));
+        new QRCode(qrDiv, { text: target, width: 75, height: 75, colorDark: S.colors.brand || '#2d5a27' });
+    } catch (e) { console.log('QR engine not ready'); }
+}
+
+async function loadSettings() {
+    if (!sb) return;
+    try {
+        const { data, error } = await sb.from('tool_settings').select('settings').eq('tool_id', TOOL_ID).maybeSingle();
+        if (!error && data && !(PREVIEW && previewOverride)) {
+            localStorage.setItem('eoco_calc_settings', JSON.stringify(data.settings || {}));
+            applySettings(data.settings);
+        }
+    } catch (e) {}
+}
+
+// ---------- access gate ----------
+function isUnlocked() {
+    if (PREVIEW || !S.gate.enabled) return true;
+    const v = localStorage.getItem('eoco_calc_access');
+    if (v === String(S.gate.version)) return true;
+    // people who unlocked the old version of this page keep access until the code is changed
+    return S.gate.version === 1 && localStorage.getItem('eoco_auth_verified') === 'true';
+}
+
+async function handleUnlock() {
+    const code = $('passInput').value;
+    if (!code) return;
+    const btn = $('unlockBtn');
+    btn.disabled = true; $('gateError').textContent = '';
+    let ok = false;
+    try {
+        const { data, error } = await sb.rpc('verify_access_code', { p_tool: TOOL_ID, p_code: code });
+        ok = !error && data === true;
+        if (error) $('gateError').textContent = 'Couldn’t check the code. Please check your connection and try again.';
+    } catch (e) { $('gateError').textContent = 'Couldn’t check the code. Please check your connection and try again.'; }
+    btn.disabled = false;
+    if (ok) {
+        localStorage.setItem('eoco_calc_access', String(S.gate.version));
+        logEvent('unlock');
+        showCalculator();
+    } else if (!$('gateError').textContent) {
+        $('gateError').textContent = S.gate.wrong;
+    }
+}
+$('passInput').addEventListener('keydown', e => { if (e.key === 'Enter') handleUnlock(); });
+
+function showGate() {
+    $('loading').style.display = 'none';
+    $('calculator').style.display = 'none';
+    $('gate').style.display = 'block';
+}
+
+function showCalculator() {
+    $('loading').style.display = 'none';
+    $('gate').style.display = 'none';
+    $('calculator').style.display = 'block';
+    if (!PREVIEW && S.guide.enabled && localStorage.getItem('eoco_welcome_verified') !== 'true') $('welcomePopup').style.display = 'flex';
+    if (localStorage.getItem('eoco_v') && !PREVIEW) {
+        $('vac').value = localStorage.getItem('eoco_v');
+        $('cpp').value = localStorage.getItem('eoco_c');
+        $('ei').value = localStorage.getItem('eoco_e');
+        $('wcb').value = localStorage.getItem('eoco_w');
+    } else { resetData(); }
+    if (!$('wage').value) $('wage').value = Number(S.rates.wage).toFixed(2);
+    runMath();
+    if (S.qr.enabled) drawQR();
+}
+
+function closePopup() {
+    $('welcomePopup').style.display = 'none';
+    if (!PREVIEW) localStorage.setItem('eoco_welcome_verified', 'true');
+}
+
+// ---------- the maths ----------
+function runMath() {
+    const w = parseFloat($('wage').value) || 0;
+    const v = (parseFloat($('vac').value) || 0) / 100;
+    const c = (parseFloat($('cpp').value) || 0) / 100;
+    const e = parseFloat($('ei').value) || 0;
+    const wcb = (parseFloat($('wcb').value) || 0) / 100;
+    const mult = parseFloat(S.rates.ei_multiplier) || 1.4;
+
+    $('ei-actual').innerText = (e * mult).toFixed(3) + '% ' + (S.labels.ei_employer || 'Employer Rate');
+
+    const sub = w + (w * v);
+    const final = sub + (sub * c) + (sub * (e * mult / 100)) + (sub * wcb);
+    $('total').innerText = '$' + final.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function activatePDF() {
+    $('pdfBtn').classList.remove('btn-pdf-idle');
+    $('pdfBtn').classList.add('btn-pdf-ready');
+}
+
+function saveData() {
+    if (PREVIEW) return;
+    localStorage.setItem('eoco_v', $('vac').value);
+    localStorage.setItem('eoco_c', $('cpp').value);
+    localStorage.setItem('eoco_e', $('ei').value);
+    localStorage.setItem('eoco_w', $('wcb').value);
+    logEvent('save');
+    alert(S.labels.saved_message || 'Rates Saved!');
+}
+
+function resetData() {
+    $('vac').value = S.rates.vac;
+    $('cpp').value = S.rates.cpp;
+    $('ei').value = S.rates.ei;
+    $('wcb').value = S.rates.wcb;
+    runMath();
+}
+
+function hexToRgb(h) {
+    h = (h || '').replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const n = parseInt(h, 16);
+    return isNaN(n) ? [45, 90, 39] : [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function getPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const name = $('empName').value || 'Estimate';
+    const wage = $('wage').value;
+    const total = $('total').innerText;
+    const brand = hexToRgb(S.colors.brand), dark = hexToRgb(S.colors.dark);
+
+    doc.setFontSize(22); doc.setTextColor(...brand);
+    doc.text(S.pdf.title, 20, 25);
+    doc.setFontSize(10); doc.setTextColor(100);
+    doc.text(S.pdf.subtitle, 20, 32);
+    doc.setDrawColor(200); doc.line(20, 40, 190, 40);
+
+    doc.setFontSize(12); doc.setTextColor(0);
+    doc.text(`Employee / Role: ${name}`, 20, 50);
+    doc.text(`Base Hourly Wage: $${wage}`, 20, 60);
+
+    doc.setFontSize(11); doc.setTextColor(80);
+    doc.text(S.pdf.rates_heading, 20, 75);
+    doc.text(`- Vacation Pay: ${$('vac').value}%`, 25, 82);
+    doc.text(`- CPP Contribution: ${$('cpp').value}%`, 25, 89);
+    doc.text(`- Employer EI Rate: ${$('ei-actual').innerText}`, 25, 96);
+    doc.text(`- WCB Rate: ${$('wcb').value}%`, 25, 103);
+
+    doc.setFillColor(...dark); doc.rect(20, 115, 170, 30, 'F');
+    doc.setTextColor(255); doc.text(S.pdf.result, 25, 125);
+    doc.setFontSize(22); doc.text(`${total}`, 25, 138);
+
+    doc.setTextColor(150); doc.setFontSize(8);
+    doc.text(S.pdf.footer, 20, 160);
+    doc.save(`EOCO_Costing_${name.replace(/\s+/g, '_')}.pdf`);
+    logEvent('pdf');
+}
+
+// live preview from the calculator admin
+window.addEventListener('message', e => {
+    if (!PREVIEW || e.origin !== location.origin || !e.data || e.data.type !== 'eoco-calc-preview') return;
+    previewOverride = e.data.settings;
+    applySettings(previewOverride);
+    resetData();
+    if (!$('wage').value || e.data.resetWage) $('wage').value = Number(S.rates.wage).toFixed(2);
+    runMath();
+});
+
+// ---------- start ----------
+(async function start() {
+    try { applySettings(JSON.parse(localStorage.getItem('eoco_calc_settings') || 'null')); } catch (e) { applySettings(null); }
+    await loadSettings();
+    if (PREVIEW && previewOverride) applySettings(previewOverride);
+    isUnlocked() ? showCalculator() : showGate();
+})();
+</script>
+</body>
+</html>

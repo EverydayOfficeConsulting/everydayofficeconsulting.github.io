@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>EOCO Admin · Main</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../platform/admin.css">
+<style>
+.hub-tool { display: grid; grid-template-columns: auto auto 1fr; gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line); }
+.hub-tool:first-of-type { border-top: 0; }
+.hub-tool .reorder { padding-top: 2px; }
+.hub-tool .tool-icon { width: 36px; height: 36px; font-size: 1.1rem; }
+.hub-tool .check { margin-bottom: 6px; }
+.preview-col .preview-frame { height: calc(100vh - 230px); min-height: 520px; }
+.you { font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); }
+.howto ol { margin: 6px 0 0; padding-left: 20px; color: var(--muted); font-size: .9rem; }
+.howto li { margin-bottom: 4px; }
+.howto code { font-size: .85em; background: var(--sunken); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+</style>
+</head>
+<body data-theme="light">
+
+<header class="topbar">
+  <div class="topbar-row">
+    <div class="brand">
+      <span class="brand-mark">EOCO</span>
+      <div class="switcher" id="tool-switcher"></div>
+    </div>
+    <div class="topbar-right">
+      <span class="who" id="who"></span>
+      <a class="ghost-light" href="../" target="_blank" rel="noopener">View tools page ↗</a>
+      <button class="ghost-light" id="theme-btn" type="button">Dark mode</button>
+      <button class="ghost-light" id="signout-btn" type="button" hidden>Sign out</button>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs" role="tablist" data-app hidden>
+    <button class="tab" role="tab" data-tab="overview" type="button">Overview</button>
+    <button class="tab" role="tab" data-tab="hub" type="button">Tools page</button>
+    <button class="tab" role="tab" data-tab="admins" type="button">Admins</button>
+    <button class="tab" role="tab" data-tab="backup" type="button">Backup</button>
+  </nav>
+</header>
+
+<section class="gate" id="gate" hidden>
+  <div class="gate-card">
+    <h1>EOCO admin</h1>
+    <p>One sign-in for every tool.</p>
+    <label class="field"><span>Email</span><input class="input" id="login-email" type="email" autocomplete="username"></label>
+    <label class="field"><span>Password</span><input class="input" id="login-pass" type="password" autocomplete="current-password"></label>
+    <button class="btn btn-primary" id="login-btn" type="button">Sign in</button>
+    <div class="notice error" id="login-error" hidden></div>
+  </div>
+</section>
+
+<div data-app hidden>
+<div class="note page" id="upgrade-note" hidden style="margin-top:20px;margin-bottom:0">
+  Some features need one database update. Run <b>upgrade-v3.sql</b> in the Supabase SQL Editor, then refresh this page.
+</div>
+
+<!-- ============ OVERVIEW ============ -->
+<main class="page wide" id="tab-overview" hidden>
+  <div class="page-head">
+    <div><h1>All tools</h1><p>Everything on tools.eoco.ca in one place. Use the dropdown at the top to jump into any tool's own admin.</p></div>
+  </div>
+  <div class="stat-grid" id="overview-stats"></div>
+  <div class="tool-grid" id="overview-tools"></div>
+  <div class="block howto" style="margin-top:22px">
+    <div class="block-head"><h3>Adding another tool later</h3><span>Notes for whoever builds it</span></div>
+    <ol>
+      <li>Give the tool its own folder (like <code>roadmap/</code>) with an <code>index.html</code> for visitors and an <code>admin.html</code> built on <code>platform/admin-common.js</code>.</li>
+      <li>Put its database setup in <code>setup/&lt;tool&gt;.sql</code>, written so it's safe to run more than once.</li>
+      <li>Add one entry to <code>platform/tools.js</code>, listing the tables that hold its content.</li>
+    </ol>
+    <p class="muted" style="font-size:.9rem">That's all. It then shows up on the tools page, in this dropdown, in this overview, and in the complete backup and rebuild guide automatically.</p>
+  </div>
+</main>
+
+<!-- ============ TOOLS PAGE (hub) ============ -->
+<main class="page wide" id="tab-hub" hidden>
+  <div class="page-head"><div><h1>Tools page</h1><p>The public page at the top of your site that lists every tool.</p></div></div>
+  <div class="split">
+    <div>
+      <div id="hub-form"></div>
+      <div class="sticky-save">
+        <span class="status" id="hub-status">All changes saved</span>
+        <button class="btn btn-quiet btn-sm" type="button" id="hub-discard" disabled>Discard</button>
+        <button class="btn btn-primary" type="button" id="hub-save" disabled>Save &amp; publish</button>
+      </div>
+    </div>
+    <div class="preview-col">
+      <div class="preview-frame-wrap">
+        <div class="preview-bar"><span>Live preview</span><span class="muted" style="font-size:.8rem">Not saved until you publish</span></div>
+        <iframe class="preview-frame" id="hub-frame" title="Tools page preview"></iframe>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ============ ADMINS ============ -->
+<main class="page" id="tab-admins" hidden>
+  <div class="page-head"><div><h1>Admins</h1><p>Everyone here can sign in to the main admin and every tool's admin.</p></div></div>
+  <div class="mod-list" id="admin-list"><div class="mod-empty">Loading…</div></div>
+  <div class="add-phase">
+    <h3>Add an admin</h3>
+    <div class="add-phase-row" style="grid-template-columns:1fr auto">
+      <input class="input" id="new-admin" type="email" placeholder="their@email.com" aria-label="New admin email">
+      <button class="btn btn-primary" id="add-admin" type="button">Add admin</button>
+    </div>
+    <p class="muted" style="font-size:.86rem;margin:12px 0 0">They also need a login: in Supabase go to <b>Authentication → Users → Add user → Create new user</b>, use the same email, set a password and tick <b>Auto Confirm User</b>.</p>
+  </div>
+</main>
+
+<!-- ============ BACKUP ============ -->
+<main class="page" id="tab-backup" hidden>
+  <div class="page-head"><div><h1>Backup</h1><p>The free Supabase plan doesn't keep backups for you. Download the complete kit after big changes and keep it somewhere safe and private.</p></div></div>
+  <div class="block kit-card">
+    <div class="kit-body">
+      <div>
+        <div class="block-head"><h3>Complete site kit — every tool</h3><span>Recommended</span></div>
+        <p>One zip with everything needed to rebuild the whole site from nothing, written so someone who has never seen the setup can follow it. It always includes every tool in your tool list, including ones added later.</p>
+        <ul class="kit-list">
+          <li><b>START-HERE.html</b> — the step-by-step rebuild guide, including accounts, your domain and sign-in emails</li>
+          <li><b>website/</b> — every file from your GitHub repository</li>
+          <li><b>supabase/</b> — two files for the SQL Editor: the setup for every tool, then all your content</li>
+          <li><b>backup/</b> — a full restore file, a spreadsheet of each tool's content, and your account list</li>
+        </ul>
+      </div>
+      <div class="kit-action">
+        <button class="btn btn-primary" id="kit-btn" type="button">Download complete kit</button>
+        <span class="status" id="kit-status"></span>
+      </div>
+    </div>
+  </div>
+  <div class="backup-grid">
+    <div class="block">
+      <div class="block-head"><h3>Full content backup</h3></div>
+      <p>Every tool's content, the tools page and the admin list, in one file.</p>
+      <button class="btn btn-quiet" id="backup-full" type="button">Download full backup</button>
+    </div>
+    <div class="block">
+      <div class="block-head"><h3>Restore everything</h3></div>
+      <p>Puts back every tool's content from a full backup. Rows with the same key are replaced; anything added since is kept.</p>
+      <label class="btn btn-quiet" style="cursor:pointer">Choose full backup…<input type="file" id="restore-full" accept=".json,application/json" hidden></label>
+    </div>
+    <div class="block">
+      <div class="block-head"><h3>One tool at a time</h3></div>
+      <p>Each tool also has its own backup and restore in its admin:</p>
+      <div id="tool-backup-links"></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<dialog id="confirm">
+  <h2 id="confirm-title"></h2>
+  <p id="confirm-text"></p>
+  <div id="confirm-extra"></div>
+  <div class="dialog-actions">
+    <button class="btn btn-quiet" id="confirm-cancel" type="button">Cancel</button>
+    <button class="btn btn-danger" id="confirm-ok" type="button">Delete</button>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../config.js"></script>
+<script src="../platform/tools.js"></script>
+<script src="../platform/admin-common.js"></script>
+<script>
+const HUB_DEFAULTS = {
+  title: 'EOCO Tools',
+  tagline: 'Simple Systems. Better Business.',
+  intro: 'Practical tools to help you set up and run your business.',
+  footer: '© 2026 EOCO - Nova Scotia',
+  show_admin_link: true,
+  colors: { brand: '#3A506B', header: '#1C2541', accent: '#8DA9C4', background: '#F0F4F8' },
+  tools: {}
+};
+const { esc, plural, clone, toast, ask } = EOCO;
+const $ = id => document.getElementById(id);
+const sb = EOCO.client();
+const TOOLS = EOCO.tools;
+let hubSaved = null, hubDraft = null, hubDirty = false, hubLoaded = false;
+
+EOCO.themeButton();
+EOCO.mountSwitcher('main');
+EOCO.auth({ onReady: () => showTab((location.hash || '#overview').slice(1)), beforeSignOut: () => !hubDirty || confirm('You have unsaved changes. Sign out anyway?') });
+
+const TAB_NAMES = ['overview', 'hub', 'admins', 'backup'];
+function showTab(name) {
+  if (!TAB_NAMES.includes(name)) name = 'overview';
+  TAB_NAMES.forEach(t => { $('tab-' + t).hidden = t !== name; document.querySelector(`[data-tab="${t}"]`).setAttribute('aria-selected', t === name); });
+  if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+  ({ overview: loadOverview, hub: openHub, admins: loadAdmins, backup: renderBackupLinks })[name]();
+  window.scrollTo(0, 0);
+}
+$('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+window.addEventListener('hashchange', () => { if (!$('tabs').hidden) showTab(location.hash.slice(1)); });
+window.addEventListener('beforeunload', e => { if (hubDirty) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------- OVERVIEW ---------- */
+async function loadOverview() {
+  $('overview-tools').innerHTML = TOOLS.map(t => `
+    <div class="tool-card">
+      <div class="tool-card-head"><div class="tool-icon">${esc(t.icon || '•')}</div><div><h3>${esc(t.name)}</h3></div></div>
+      <p class="muted">${esc(t.summary || '')}</p>
+      <div class="tool-stats" id="stats-${esc(t.id)}"><span>Loading…</span></div>
+      <div class="tool-actions">
+        <a class="btn btn-primary btn-sm" href="${esc(EOCO.url(t.admin))}">Open admin</a>
+        <a class="btn btn-quiet btn-sm" href="${esc(EOCO.url(t.path))}" target="_blank" rel="noopener">View tool ↗</a>
+      </div>
+    </div>`).join('');
+
+  const [users, admins, events] = await Promise.all([
+    sb.rpc('admin_user_list'),
+    sb.from('admins').select('email'),
+    sb.from('tool_events').select('tool_id, event').gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString()).range(0, 49999)
+  ]);
+  $('upgrade-note').hidden = !(users.error && admins.error);
+  $('overview-stats').innerHTML = `
+    <div class="stat"><b>${TOOLS.length}</b><span>Tools</span></div>
+    <div class="stat"><b>${users.error ? '—' : (users.data || []).length}</b><span>Visitor accounts (all tools)</span></div>
+    <div class="stat"><b>${admins.error ? '—' : (admins.data || []).length}</b><span>Admins</span></div>
+    <div class="stat"><b>${events.error ? '—' : (events.data || []).length}</b><span>Tool activity, last 30 days</span></div>`;
+
+  for (const t of TOOLS) {
+    const counts = await Promise.all((t.backup || []).map(async def => ({ def, n: await EOCO.countRows(def) })));
+    const ev = events.error ? [] : (events.data || []).filter(e => e.tool_id === t.id);
+    const bits = counts.filter(c => c.n !== null && c.def.count !== false)
+      .map(c => `<span><b>${c.n}</b> ${esc(c.def.label || c.def.table)}</span>`);
+    if (ev.length) bits.push(`<span><b>${ev.length}</b> activity (30 days)</span>`);
+    const box = $('stats-' + t.id);
+    if (box) box.innerHTML = bits.join('') || '<span>Content stored in its settings</span>';
+  }
+}
+
+/* ---------- TOOLS PAGE (hub) ---------- */
+async function openHub() {
+  if (hubLoaded) return;
+  $('hub-form').innerHTML = '<div class="loading">Loading…</div>';
+  const { data, error } = await sb.from('tool_settings').select('settings').eq('tool_id', 'hub').maybeSingle();
+  if (error) { $('hub-form').innerHTML = `<div class="block"><p class="muted">Couldn't load: ${esc(error.message)}. Run upgrade-v3.sql first.</p></div>`; return; }
+  hubSaved = EOCO.merge(HUB_DEFAULTS, data ? data.settings : {});
+  TOOLS.forEach((t, i) => { hubSaved.tools[t.id] = EOCO.merge({ visible: true, summary: '', order: i }, hubSaved.tools[t.id] || {}); });
+  hubDraft = clone(hubSaved); hubLoaded = true;
+  renderHub();
+  const f = $('hub-frame'); f.onload = pushHub; f.src = '../index.html?preview=1';
+}
+
+function hubOrder() { return [...TOOLS].sort((a, b) => hubDraft.tools[a.id].order - hubDraft.tools[b.id].order); }
+
+function renderHub() {
+  const s = hubDraft;
+  const colorRow = (k, label) => `<div class="color-row"><input type="color" data-h="colors.${k}" value="${esc(s.colors[k])}" aria-label="${label}">
+    <div class="lbl"><b>${label}</b></div><input class="input" data-hex="colors.${k}" value="${esc(s.colors[k])}" maxlength="7" aria-label="${label} hex code"></div>`;
+  const order = hubOrder();
+  $('hub-form').innerHTML = `
+    <div class="block"><div class="block-head"><h3>Heading</h3></div>
+      <label class="field"><span>Title</span><input class="input" data-h="title" value="${esc(s.title)}"></label>
+      <label class="field"><span>Tagline</span><input class="input" data-h="tagline" value="${esc(s.tagline)}"></label>
+      <label class="field"><span>Introduction</span><textarea class="textarea" data-h="intro" rows="3">${esc(s.intro)}</textarea></label>
+      <label class="field"><span>Footer</span><input class="input" data-h="footer" value="${esc(s.footer)}"></label>
+      <label class="check"><input type="checkbox" data-h="show_admin_link" ${s.show_admin_link ? 'checked' : ''}><span><b>Show a small “Admin” link in the footer</b><small>A shortcut for you. Visitors can't do anything without an admin login.</small></span></label>
+    </div>
+    <div class="block"><div class="block-head"><h3>Tools shown</h3><span>Order, visibility and descriptions</span></div>
+      ${order.map((t, i) => `<div class="hub-tool">
+        <div class="reorder">
+          <button class="icon-btn" type="button" data-move="${esc(t.id)}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move up">▲</button>
+          <button class="icon-btn" type="button" data-move="${esc(t.id)}" data-dir="1" ${i === order.length - 1 ? 'disabled' : ''} aria-label="Move down">▼</button>
+        </div>
+        <div class="tool-icon">${esc(t.icon || '•')}</div>
+        <div>
+          <label class="check"><input type="checkbox" data-h="tools.${esc(t.id)}.visible" ${s.tools[t.id].visible !== false ? 'checked' : ''}><span><b>${esc(t.name)}</b><small>Show on the tools page</small></span></label>
+          <textarea class="textarea" data-h="tools.${esc(t.id)}.summary" rows="2" placeholder="${esc(t.summary || '')}" aria-label="${esc(t.name)} description">${esc(s.tools[t.id].summary)}</textarea>
+          <small class="muted" style="font-size:.8rem">Leave empty to use the standard description (shown faintly).</small>
+        </div></div>`).join('')}
+    </div>
+    <div class="block"><div class="block-head"><h3>Colours</h3></div>
+      ${colorRow('header', 'Header background')}${colorRow('brand', 'Main colour (card tops, links)')}${colorRow('accent', 'Tagline')}${colorRow('background', 'Page background')}
+    </div>`;
+}
+
+function setHub(path, v) { const k = path.split('.'); let o = hubDraft; k.slice(0, -1).forEach(x => o = o[x]); o[k[k.length - 1]] = v; }
+function markHub(v) { hubDirty = v; $('hub-status').textContent = v ? 'Unsaved changes' : 'All changes saved'; $('hub-status').className = 'status'; $('hub-save').disabled = !v; $('hub-discard').disabled = !v; }
+let hubQueued = false;
+function pushHub() {
+  if (hubQueued) return; hubQueued = true;
+  requestAnimationFrame(() => { hubQueued = false; const w = $('hub-frame').contentWindow; if (w && hubDraft) w.postMessage({ type: 'eoco-hub-preview', settings: hubDraft }, '*'); });
+}
+
+$('hub-form').addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.hex) {
+    let v = el.value.trim(); if (v && v[0] !== '#') v = '#' + v;
+    if (!/^#[0-9a-f]{6}$/i.test(v)) return;
+    setHub(el.dataset.hex, v); const p = $('hub-form').querySelector(`[data-h="${el.dataset.hex}"]`); if (p) p.value = v;
+  } else if (el.dataset.h) {
+    setHub(el.dataset.h, el.type === 'checkbox' ? el.checked : el.value);
+    if (el.type === 'color') { const h = $('hub-form').querySelector(`[data-hex="${el.dataset.h}"]`); if (h) h.value = el.value; }
+  } else return;
+  markHub(true); pushHub();
+});
+$('hub-form').addEventListener('change', e => { if (e.target.type === 'checkbox') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
+$('hub-form').addEventListener('click', e => {
+  const b = e.target.closest('[data-move]'); if (!b || b.disabled) return;
+  const order = hubOrder(), i = order.findIndex(t => t.id === b.dataset.move), j = i + Number(b.dataset.dir);
+  [order[i], order[j]] = [order[j], order[i]];
+  order.forEach((t, k) => hubDraft.tools[t.id].order = k);
+  renderHub(); markHub(true); pushHub();
+});
+$('hub-save').onclick = async () => {
+  $('hub-save').disabled = true; $('hub-status').textContent = 'Saving…';
+  const { error } = await sb.from('tool_settings').upsert({ tool_id: 'hub', settings: hubDraft });
+  if (error) { $('hub-status').textContent = `Couldn't save: ${error.message}`; $('hub-status').className = 'status error'; $('hub-save').disabled = false; return; }
+  hubSaved = clone(hubDraft); markHub(false);
+  $('hub-status').textContent = 'Saved. Live now.'; $('hub-status').className = 'status ok';
+  toast('Tools page published');
+};
+$('hub-discard').onclick = () => { hubDraft = clone(hubSaved); renderHub(); markHub(false); pushHub(); };
+
+/* ---------- ADMINS ---------- */
+async function loadAdmins() {
+  const { data, error } = await sb.from('admins').select('email').order('email');
+  if (error) { $('admin-list').innerHTML = `<div class="mod-empty">Couldn't load the admin list: ${esc(error.message)}. Run upgrade-v3.sql first.</div>`; return; }
+  const me = (EOCO.session && EOCO.session.user.email || '').toLowerCase();
+  $('admin-list').innerHTML = (data || []).map(a => `<div class="list-row">
+    <span>${esc(a.email)} ${a.email.toLowerCase() === me ? '<span class="you">You</span>' : ''}</span>
+    ${a.email.toLowerCase() === me ? '' : `<button class="btn btn-danger-quiet btn-sm" type="button" data-remove="${esc(a.email)}">Remove</button>`}
+  </div>`).join('') || '<div class="mod-empty">No admins found.</div>';
+}
+$('admin-list').addEventListener('click', async e => {
+  const b = e.target.closest('[data-remove]'); if (!b) return;
+  const ok = await ask({ title: `Remove ${b.dataset.remove}?`, text: 'They will no longer be able to open any admin page. Their login still exists in Supabase until you delete it there.', ok: 'Remove' });
+  if (!ok) return;
+  const { error } = await sb.from('admins').delete().eq('email', b.dataset.remove);
+  if (error) { toast(`Couldn't remove: ${error.message}`, true); return; }
+  toast('Admin removed'); loadAdmins();
+});
+$('add-admin').onclick = async () => {
+  const email = $('new-admin').value.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast('Enter a valid email address', true); return; }
+  const { error } = await sb.from('admins').insert({ email });
+  if (error) { toast(error.code === '23505' ? 'That email is already an admin' : `Couldn't add: ${error.message}`, true); return; }
+  $('new-admin').value = ''; toast(`${email} is now an admin`); loadAdmins();
+};
+$('new-admin').addEventListener('keydown', e => { if (e.key === 'Enter') $('add-admin').click(); });
+
+/* ---------- BACKUP ---------- */
+function renderBackupLinks() {
+  $('tool-backup-links').innerHTML = TOOLS.map(t => `<a class="btn btn-quiet btn-sm" style="margin:0 6px 8px 0" href="${esc(EOCO.url(t.admin))}#backup">${esc(t.icon || '')} ${esc(t.name)}</a>`).join('');
+}
+$('backup-full').onclick = async () => {
+  try {
+    const all = await EOCO.exportAll();
+    if (all.errors.length) throw new Error(all.errors.join('; '));
+    EOCO.downloadFile(`eoco-tools-full-backup-${EOCO.day()}.json`, JSON.stringify(all, null, 2), 'application/json');
+    toast('Full backup downloaded');
+  } catch (err) { toast(`Backup failed: ${err.message}`, true); }
+};
+$('restore-full').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let data; try { data = JSON.parse(await f.text()); } catch { toast("That file isn't a valid backup", true); return; }
+  if (!data || data.app !== 'eoco-tools' || data.kind !== 'full') { toast("That isn't a full backup. Restore single-tool backups in that tool's admin.", true); return; }
+  const names = TOOLS.filter(t => data.tools && data.tools[t.id]).map(t => t.name);
+  const ok = await ask({ title: 'Restore everything from this backup?', text: `From ${new Date(data.exported_at).toLocaleString()}: ${names.join(', ') || 'no tools'}, plus the tools page and admin list. Rows with the same key are replaced.`, ok: 'Restore', danger: false });
+  if (!ok) return;
+  try { const n = await EOCO.restoreAll(data); toast(`Restored ${plural(n, 'item')}`); hubLoaded = false; }
+  catch (err) { toast(`Restore failed: ${err.message}`, true); }
+};
+</script>
+<script>
+const KIT_FIELDS = ['site_url', 'custom_domain', 'registrar', 'github_user', 'github_repo', 'supabase_login', 'smtp_provider', 'passwords_location', 'recovery_location', 'helper'];
+
+function detectSite() {
+  const root = new URL(EOCO.root, location.href);
+  const host = root.hostname, path = root.pathname;
+  const d = { site_url: root.protocol.startsWith('http') ? root.href : '' };
+  if (/\.github\.io$/i.test(host)) {
+    d.github_user = host.split('.')[0];
+    d.github_repo = path.split('/').filter(Boolean)[0] || host;
+  } else if (host && host !== 'localhost' && !/^[\d.]+$/.test(host) && root.protocol.startsWith('http')) {
+    d.custom_domain = host;
+  }
+  return d;
+}
+
+function kitDefaults() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('eoco_kit_details') || '{}'); } catch {}
+  const det = detectSite();
+  const out = {};
+  KIT_FIELDS.forEach(k => { out[k] = det[k] || saved[k] || ''; });
+  if (det.custom_domain === undefined && saved.custom_domain) out.custom_domain = saved.custom_domain;
+  return out;
+}
+
+const cleanDomain = v => String(v || '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase();
+
+async function askKitDetails() {
+  const d = kitDefaults();
+  const f = (k, label, hint, ph = '', list = '') => `<label class="field"><span>${label}</span>
+    <input class="input" id="kit-${k}" value="${esc(d[k])}" placeholder="${esc(ph)}" ${list ? `list="${list}"` : ''}>${hint ? `<small>${hint}</small>` : ''}</label>`;
+  const ok = await ask({
+    title: 'Handover details',
+    text: 'These go into the guide so someone else could rebuild the site without asking you. Everything is optional, and it’s remembered on this computer for next time.',
+    ok: 'Build kit', danger: false, wide: true,
+    extra: `
+      <div class="grid-2">
+        ${f('custom_domain', 'Your own web address (domain)', 'Leave empty if your site address ends in github.io.', 'e.g. tools.eoco.ca')}
+        ${f('registrar', 'Where the domain was bought', 'The company you pay each year for the domain.', 'e.g. GoDaddy', 'kit-registrars')}
+      </div>
+      <datalist id="kit-registrars"><option value="GoDaddy"><option value="Namecheap"><option value="Cloudflare"><option value="Squarespace"><option value="Hover"><option value="Rebel.com"><option value="Porkbun"><option value="Wix"></datalist>
+      <div class="grid-2">
+        ${f('github_user', 'GitHub username', 'The name you sign in to GitHub with.', 'e.g. everydayoffice')}
+        ${f('github_repo', 'GitHub repository name', 'The project that holds the website files.', 'e.g. tools')}
+      </div>
+      <div class="grid-2">
+        ${f('supabase_login', 'Supabase account login', 'The email used to sign in at supabase.com.', 'e.g. you@business.ca')}
+        ${f('smtp_provider', 'Sign-in email service (if any)', 'Only if you set up your own email sender.', 'e.g. Resend, Brevo')}
+      </div>
+      ${f('passwords_location', 'Where the passwords are kept', '<b>Don’t type any passwords here.</b> Just say where to find them.', 'e.g. 1Password, shared vault “EOCO”')}
+      ${f('recovery_location', 'Where 2-step verification / recovery codes are kept', 'GitHub asks for these when signing in on a new device.', 'e.g. Printed, in the office safe')}
+      ${f('helper', 'Who to ask for help, or other notes', '', 'e.g. Call Sam at 902-555-0123')}`
+  });
+  if (!ok) return null;
+  const out = {};
+  KIT_FIELDS.forEach(k => { const el = $('kit-' + k); out[k] = el ? el.value.trim() : d[k]; });
+  out.custom_domain = cleanDomain(out.custom_domain);
+  out.github_user = out.github_user.replace(/^@/, '');
+  localStorage.setItem('eoco_kit_details', JSON.stringify(out));
+  return out;
+}
+
+/* ---------- Every file from the GitHub repository (public repos) ---------- */
+async function fetchRepoFiles(owner, repo, say) {
+  const api = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+  const info = await fetch(api);
+  if (!info.ok) throw new Error(info.status === 404 ? 'repository not found (it may be private or the name may be wrong)' : 'GitHub said ' + info.status);
+  const branch = (await info.json()).default_branch || 'main';
+  const treeRes = await fetch(`${api}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+  if (!treeRes.ok) throw new Error('GitHub said ' + treeRes.status);
+  const tree = await treeRes.json();
+  const blobs = (tree.tree || []).filter(x => x.type === 'blob' && (x.size || 0) < 25 * 1024 * 1024);
+  if ((tree.truncated) || blobs.reduce((n, b) => n + (b.size || 0), 0) > 150 * 1024 * 1024) throw new Error('repository is too large to copy automatically');
+  const files = [];
+  let done = 0;
+  const queue = [...blobs];
+  const worker = async () => {
+    while (queue.length) {
+      const b = queue.shift();
+      const url = `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/${b.path.split('/').map(encodeURIComponent).join('/')}`;
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error(`couldn't download ${b.path}`);
+      files.push({ path: b.path, data: await r.arrayBuffer() });
+      say(`Copying website files from GitHub… ${++done} of ${blobs.length}`);
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  return { branch, files };
+}
+
+/* ---------- The guide ---------- */
+function buildGuide(i) {
+  const e = esc, D = i.details;
+  let n = 0;
+  const nums = {};
+  const step = (title, body, skip, key) => { ++n; if (key) nums[key] = n; return stepHTML(title, body, skip); };
+  const stepHTML = (title, body, skip) => `<section class="step"><div class="num">${n}</div><div><h3>${title}</h3>${skip ? `<p class="skip">${skip}</p>` : ''}${body}</div></section>`;
+  const ghUser = D.github_user || 'YOUR-GITHUB-USERNAME';
+  const repoName = D.github_repo || 'tools';
+  const userSite = repoName.toLowerCase() === `${ghUser}.github.io`.toLowerCase();
+  const pagesUrl = userSite ? `https://${ghUser}.github.io/` : `https://${ghUser}.github.io/${repoName}/`;
+  const domain = D.custom_domain;
+  const finalUrl = domain ? `https://${domain}/` : (D.site_url && !/localhost/.test(D.site_url) ? D.site_url : pagesUrl);
+  const registrar = D.registrar || 'the company the domain was bought from';
+  const pw = D.passwords_location ? `Passwords are kept here: <b>${e(D.passwords_location)}</b>.` : 'Ask the site owner where the passwords are kept.';
+  const accounts = [
+    ['GitHub', 'Holds the website files and puts them online (free).', D.github_user ? `Username <code>${e(D.github_user)}</code>` : 'Ask the owner', 'github.com'],
+    ['Supabase', 'The database: every tool’s content and settings, plus visitor accounts (free plan).', D.supabase_login ? `<code>${e(D.supabase_login)}</code>` : 'Ask the owner', 'supabase.com'],
+    ['Admin', 'Where you edit every tool (one login for all).', `<code>${e(i.adminEmail)}</code>`, e(finalUrl + 'admin/')]
+  ];
+  if (domain) accounts.push([e(D.registrar || 'Domain company'), `Owns the web address <code>${e(domain)}</code>. Renews once a year (paid).`, D.passwords_location ? 'Saved with the passwords' : 'Ask the owner', D.registrar ? e(D.registrar) : '—']);
+  if (D.smtp_provider) accounts.push([e(D.smtp_provider), 'Sends the “sign-in link” emails to visitors.', D.passwords_location ? 'Saved with the passwords' : 'Ask the owner', e(D.smtp_provider)]);
+
+  // DNS instructions, used for a real domain or as an example in the appendix
+  const dnsBlock = (dom, example) => {
+    const labels = dom.split('.');
+    const apex = labels.length === 2 || (labels.length === 3 && labels[0] === 'www');
+    const root = labels[0] === 'www' ? labels.slice(1).join('.') : dom;
+    const sub = labels.slice(0, -2).join('.');
+    const rows = apex
+      ? `<tr><td>A</td><td><code>@</code></td><td><code>185.199.108.153</code></td></tr>
+         <tr><td>A</td><td><code>@</code></td><td><code>185.199.109.153</code></td></tr>
+         <tr><td>A</td><td><code>@</code></td><td><code>185.199.110.153</code></td></tr>
+         <tr><td>A</td><td><code>@</code></td><td><code>185.199.111.153</code></td></tr>
+         <tr><td>CNAME</td><td><code>www</code></td><td><code>${e(ghUser)}.github.io</code></td></tr>`
+      : `<tr><td>CNAME</td><td><code>${e(sub)}</code></td><td><code>${e(ghUser)}.github.io</code></td></tr>`;
+    return `<ol>
+      <li>Go to ${example ? 'the website of the company you bought the domain from' : `<b>${e(registrar)}</b>`} and sign in.</li>
+      <li>Find the domain <code>${e(apex ? root : dom.split('.').slice(-2).join('.'))}</code> and open its DNS settings. The button is usually called <b>DNS</b>, <b>Manage DNS</b>, <b>DNS records</b> or <b>Advanced DNS</b>.</li>
+      <li>Look for existing records with the same <b>Name/Host</b> as the ones below (${apex ? '<code>@</code> and <code>www</code>' : `<code>${e(sub)}</code>`}). If any of them point somewhere else, delete or edit them. Leave all other records alone, especially ones for email (MX).</li>
+      <li>Add ${apex ? 'these records' : 'this record'} (TTL can stay on the default or “Automatic”):
+        <table class="dns"><tr><th>Type</th><th>Name / Host</th><th>Value / Points to</th></tr>${rows}</table></li>
+      <li>Save. If you use <b>Cloudflare</b>, click the orange cloud next to each record so it turns grey (“DNS only”).</li></ol>
+      ${D.github_user ? '' : `<p class="warn">Replace <code>YOUR-GITHUB-USERNAME</code> with the GitHub username from step ${nums.github || 'Part 2'}.</p>`}`;
+  };
+
+  const repoNote = i.repo.included
+    ? `every file from your GitHub repository (${plural(i.repo.count, 'file')})`
+    : 'the main website files (see the warning below)';
+  const toolRows = i.tools.map(t => `<tr><th>${e(t.icon || '')} ${e(t.name)}</th><td>${t.tables.map(x => `${plural(x.count, 'row')} of ${e(x.label)}`).join(', ') || '—'}</td></tr>`).join('');
+  const toolList = i.tools.map(t => e(t.name)).join(', ');
+
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>START HERE — EOCO Tools rebuild guide</title>
+<style>
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#F0F4F8;color:#1F2A3A;line-height:1.6}
+header{background:#1C2541;color:#fff;padding:36px 24px}
+header .in,main{max-width:840px;margin:0 auto}
+header h1{margin:0 0 6px;font-size:1.7rem}
+header p{margin:0;color:#8DA9C4}
+main{padding:28px 24px 80px}
+h2{font-size:1.3rem;margin:44px 0 6px;color:#1C2541;border-bottom:2px solid #D1D9E6;padding-bottom:6px}
+h2 small{display:block;font-size:.9rem;font-weight:400;color:#5B6B80}
+h3{margin:0 0 6px;font-size:1.05rem}
+.card{background:#fff;border:1px solid #D1D9E6;border-radius:8px;padding:18px 20px;margin:16px 0}
+.card h3{margin-top:0}
+.card ul{margin:6px 0 0;padding-left:20px}
+.step{display:grid;grid-template-columns:40px 1fr;gap:14px;background:#fff;border:1px solid #D1D9E6;border-radius:8px;padding:16px 18px;margin:12px 0}
+.num{width:34px;height:34px;border-radius:50%;background:#3A506B;color:#fff;display:grid;place-items:center;font-weight:700}
+.step ol,.step ul{margin:4px 0 0;padding-left:20px}
+.step li{margin-bottom:5px}
+.skip{margin:0 0 6px;color:#5B6B80;font-style:italic}
+code,.file{background:#EEF2F7;border:1px solid #D1D9E6;border-radius:4px;padding:1px 6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;overflow-wrap:break-word}
+.file{white-space:nowrap}
+.ok{background:#E9F4EE;border-left:4px solid #2F6B4F;padding:10px 14px;border-radius:4px;margin:10px 0 0;font-size:.95rem}
+.warn{background:#FFF6E5;border-left:4px solid #C08A2E;padding:10px 14px;border-radius:4px;margin:10px 0 0;font-size:.95rem}
+.stop{background:#FBEFEF;border-left:4px solid #A33A3A;padding:10px 14px;border-radius:4px;margin:10px 0 0;font-size:.95rem}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+td,th{text-align:left;padding:8px 10px;border-bottom:1px solid #D1D9E6;vertical-align:top}
+th{background:#F6F8FB}
+table.dns{margin:8px 0 4px;background:#fff}
+.pieces{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}
+.piece{background:#fff;border:1px solid #D1D9E6;border-radius:8px;padding:14px}
+.piece .pt{display:block;color:#3A506B;font-weight:700;margin-bottom:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.check li{list-style:none;margin-left:-20px}
+.check li::before{content:"☐  ";font-size:1.1em}
+@media(max-width:640px){.two,.pieces{grid-template-columns:1fr}}
+@media print{body{background:#fff}header{background:#fff;color:#000;border-bottom:2px solid #000}header p{color:#333}.step,.card,.piece{break-inside:avoid}}
+</style></head><body>
+<header><div class="in">
+  <h1>EOCO Tools — complete rebuild kit</h1>
+  <p>Made ${e(i.madeOn)} by ${e(i.adminEmail)}. Everything in this folder is what the site looked like at that moment.</p>
+</div></header>
+<main>
+
+<div class="card">
+  <h3>What is this?</h3>
+  <p style="margin:0">This folder can rebuild the whole EOCO Tools website (${plural(i.tools.length, 'tool')}: ${toolList}) from nothing, even if everything online was deleted. You don't need to know any code. Follow the numbered steps in order and do exactly what each one says. Set aside about <b>45 minutes</b> and use a computer, not a phone.</p>
+  <div class="pieces">
+    <div class="piece"><span class="pt">1. The website</span>The pages people see. The files live on <b>GitHub</b>, which also puts them online for free.</div>
+    <div class="piece"><span class="pt">2. The database</span>Every tool's content and settings, and visitor accounts. Lives on <b>Supabase</b>.</div>
+    <div class="piece"><span class="pt">3. The address</span>${domain ? `The web address <b>${e(domain)}</b>, rented yearly from <b>${e(D.registrar || 'a domain company')}</b>.` : `The web address. Right now it's a free GitHub address.`}</div>
+  </div>
+  <p style="margin:0">The website reads from the database. The address points people to the website. Rebuilding means putting each piece back and reconnecting them.</p>
+</div>
+
+<div class="card">
+  <h3>Before you start: accounts you'll need</h3>
+  <table><tr><th>Service</th><th>What it does</th><th>Sign in with</th><th>Website</th></tr>
+  ${accounts.map(a => `<tr><td><b>${a[0]}</b></td><td>${a[1]}</td><td>${a[2]}</td><td>${a[3]}</td></tr>`).join('')}
+  </table>
+  <p class="${D.passwords_location ? 'ok' : 'warn'}">${pw}${D.recovery_location ? ` If a site asks for a 2-step verification code and the phone isn't available, recovery codes are kept here: <b>${e(D.recovery_location)}</b>.` : ' GitHub may ask for a 2-step verification code from a phone app. Make sure you have that phone, or the printed recovery codes.'}</p>
+  ${D.helper ? `<p class="ok">Help or notes: <b>${e(D.helper)}</b></p>` : ''}
+  <p style="margin:12px 0 0">If one of these accounts no longer exists or can't be opened, you can create a new free one. The steps below tell you when that's fine.</p>
+</div>
+
+<div class="card">
+  <h3>What was saved</h3>
+  <table>
+    ${toolRows}
+    <tr><th>Tools page and admins</th><td>${plural(i.adminCount, 'admin')}, and the tools page settings</td></tr>
+    <tr><th>Website files</th><td>${repoNote}</td></tr>
+    <tr><th>Website address</th><td><code>${e(finalUrl)}</code></td></tr>
+    <tr><th>Supabase project</th><td><code>${e(i.supabaseUrl)}</code></td></tr>
+    <tr><th>Admin email</th><td><code>${e(i.adminEmail)}</code></td></tr>
+  </table>
+  ${!i.repo.included ? `<p class="warn">Only the main website files are in this kit${i.repo.error ? ` (the full copy from GitHub didn't work: ${e(i.repo.error)})` : ''}. If you added anything else to GitHub, like images or a logo, it isn't here. To keep those too: open the repository on github.com, click the green <b>Code</b> button, then <b>Download ZIP</b>, and keep that zip with this kit.</p>` : ''}
+  ${i.missing.length ? `<p class="warn">These files couldn't be included: ${i.missing.map(f => `<code>${e(f)}</code>`).join(', ')}. Download them from the GitHub repository.</p>` : ''}
+</div>
+
+<div class="card">
+  <h3>What's in this folder</h3>
+  <table>
+    <tr><th>File</th><th>Where it goes</th><th>What it's for</th></tr>
+    <tr><td><span class="file">START-HERE.html</span></td><td>You're reading it</td><td>This guide</td></tr>
+    <tr><td><span class="file">supabase/1-database-setup.sql</span></td><td>Supabase SQL Editor</td><td>Creates the tables and security rules for every tool</td></tr>
+    <tr><td><span class="file">supabase/2-your-content.sql</span></td><td>Supabase SQL Editor</td><td>Puts back every tool's content, the tools page and the admin list</td></tr>
+    <tr><td><span class="file">website/</span> (everything inside)</td><td>GitHub</td><td>The website: ${repoNote}</td></tr>
+    <tr><td><span class="file">backup/${e(i.backupName)}</span></td><td>Main admin → Backup → Restore everything</td><td>Quick content restore, if Supabase still works</td></tr>
+    <tr><td><span class="file">backup/&lt;tool&gt;/…csv</span></td><td>Excel / Google Sheets</td><td>A readable copy of each tool's content</td></tr>
+    ${i.usersIncluded ? `<tr><td><span class="file">backup/accounts.csv</span></td><td>Excel / Google Sheets</td><td>Who had visitor accounts (private)</td></tr>` : ''}
+  </table>
+  <p class="stop"><b>Keep this kit private.</b> ${i.usersIncluded ? 'It contains your visitors’ email addresses. ' : ''}Only the files inside the <span class="file">website</span> folder ever go on GitHub. Never upload START-HERE, the <span class="file">supabase</span> folder or the <span class="file">backup</span> folder there, because GitHub repositories are public.</p>
+</div>
+
+<h2>Which situation are you in?</h2>
+<div class="two">
+  <div class="card">
+    <h3>The site still opens, but content was deleted or broken</h3>
+    <p>You only need to put the content back. Choose one:</p>
+    <ul>
+      <li>Open <code>${e(finalUrl)}admin/</code>, sign in, go to the <b>Backup</b> tab → <b>Restore everything</b> → choose <span class="file">backup/${e(i.backupName)}</span>.</li>
+      <li>Or: Supabase → SQL Editor → New query → paste <span class="file">supabase/2-your-content.sql</span> → Run.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Starting over, or something is missing online</h3>
+    <p>Follow <b>every part below, in order</b>. Many steps start with “Skip this if…”. Only skip when that sentence is true for you.</p>
+  </div>
+</div>
+
+<p class="ok"><b>First:</b> unzip this download so you can open the files inside. On Windows, right-click the zip → <b>Extract All</b> → <b>Extract</b>. On a Mac, double-click the zip.</p>
+
+<h2>Part 1: The database <small>on Supabase (supabase.com)</small></h2>
+
+${step('Sign in to Supabase', `<ol>
+  <li>Go to <b>supabase.com</b> and click <b>Sign in</b>${D.supabase_login ? ` with <code>${e(D.supabase_login)}</code>` : ''}.</li>
+  <li>If the account doesn't exist anymore, click <b>Sign up</b> and create a new free account with an email address you can open. Confirm it from the email Supabase sends.</li>
+  <li>Once signed in, look for the EOCO project (it may be called something like <i>EOCO Business Roadmap</i>). If it's there, click it and open it.</li></ol>`)}
+
+${step('Create a Supabase project', `<ol>
+  <li>Click <b>New project</b>. Give it a name (for example <i>EOCO Business Roadmap</i>).</li>
+  <li>Create a database password and store it with the other passwords. You won't need it for these steps.</li>
+  <li>For <b>Region</b>, choose <b>Canada (Central)</b>, then click <b>Create new project</b>.</li>
+  <li>Wait about 2 minutes until the project dashboard appears.</li></ol>`, 'Skip this if the project from step 1 still exists and opens.', 'project')}
+
+${step('Run the setup file', `<ol>
+  <li>On the left edge of Supabase, click the <b>&gt;_</b> icon (<b>SQL Editor</b>). Hover over the icons if you're unsure which is which.</li>
+  <li>Click <b>New query</b> (or the <b>+</b>) to get a blank tab. Clearing or replacing text in the editor never deletes anything.</li>
+  <li>On your computer, open <span class="file">supabase/1-database-setup.sql</span> with Notepad (Windows: right-click → <b>Open with</b> → Notepad) or TextEdit (Mac). Press <b>Ctrl+A</b> then <b>Ctrl+C</b> to copy it all (Cmd+A, Cmd+C on a Mac).</li>
+  <li>Click in the blank SQL tab and press <b>Ctrl+V</b> to paste.</li>
+  <li>The admin email is already filled in as <code>${e(i.adminEmail)}</code>. To use a different one, find that email in the pasted text and change it, keeping the single quotes around it.</li>
+  <li>Click the green <b>Run</b> button. If a warning about “destructive operations” appears, click <b>Run this query</b>.</li></ol>
+  <p class="ok">You should see <b>Success. No rows returned.</b> It's safe to run this even on an existing project.</p>`, '', 'setup')}
+
+${step('Put the content back', `<ol>
+  <li>In the SQL Editor, click <b>New query</b> again.</li>
+  <li>Open <span class="file">supabase/2-your-content.sql</span>, copy everything, and paste it into the blank tab.</li>
+  <li>Click <b>Run</b>.</li>
+  <li>To check: click the grid icon on the left (<b>Table Editor</b>). These tables should have rows: ${i.tools.flatMap(t => t.tables.filter(x => !x.shared)).map(x => `<b>${e(x.table)}</b> (${x.count})`).join(', ') || 'your tool tables'}.</li></ol>`)}
+
+${step('Create the admin login', `<ol>
+  <li>Click the padlock icon on the left (<b>Authentication</b>) → <b>Users</b>.</li>
+  <li>If <code>${e(i.adminEmail)}</code> is already in the list, skip the rest of this step.</li>
+  <li>Click <b>Add user</b> → <b>Create new user</b>. Enter <code>${e(i.adminEmail)}</code> (or the email you used in step ${nums.setup}) and choose a password. Store it with the other passwords.</li>
+  <li>Tick <b>Auto Confirm User</b>, then click <b>Create user</b>.</li></ol>`, '', 'admin')}
+
+${step('Copy the two connection codes', `<ol>
+  <li>Click the green <b>Connect</b> button at the top of Supabase.</li>
+  <li>Copy the <b>Project URL</b> (it looks like <code>https://abcdefgh.supabase.co</code>) into Notepad.</li>
+  <li>Copy the <b>anon</b> (also called <b>publishable</b>) key, a long string of letters and numbers, into Notepad.</li></ol>
+  <p class="warn">Never use the key called <b>service_role</b> or <b>secret</b>. It must not go on the website.</p>`, `Skip this if you're using the same project as before (its address is <code>${e(i.supabaseUrl)}</code>). The codes in config.js are still correct.`, 'codes')}
+
+<h2>Part 2: The website <small>on GitHub (github.com)</small></h2>
+
+${step('Sign in to GitHub', `<ol>
+  <li>Go to <b>github.com</b> and click <b>Sign in</b>${D.github_user ? ` with the username <code>${e(D.github_user)}</code>` : ''}. GitHub may ask for a 6-digit code from an authenticator app, or a recovery code.</li>
+  <li>If the account can't be used anymore, click <b>Sign up</b>, create a free account and confirm the email. Write down the new username; the website address depends on it.</li></ol>`, '', 'github')}
+
+${step('Open or create the repository', `<ul>
+  <li><b>If it exists:</b> click your profile picture (top right) → <b>Your repositories</b> → <b>${e(repoName)}</b>. Then go to the next step.</li>
+  <li><b>If it's gone, or it's a new account:</b> click the <b>+</b> at the top right → <b>New repository</b> → name it <code>${e(repoName)}</code> → choose <b>Public</b> → click <b>Create repository</b>.</li></ul>`)}
+
+${step('Upload the website files', `<ol>
+  <li>Click <b>Add file</b> → <b>Upload files</b>. On a brand-new, empty repository, click the link that says <b>uploading an existing file</b> instead.</li>
+  <li>On your computer, open the <span class="file">website</span> folder. Select everything inside it, files and folders (<b>Ctrl+A</b>, or Cmd+A on a Mac), and drag it onto the GitHub page. Drag what's <i>inside</i> the folder, not the folder itself. GitHub keeps the folders (like <span class="file">admin</span> and <span class="file">roadmap</span>) as they are.</li>
+  <li>Wait for all the files to finish loading, scroll down and click <b>Commit changes</b>.</li></ol>
+  <p class="stop">Only upload what's inside <span class="file">website</span>. Nothing from the <span class="file">backup</span> or <span class="file">supabase</span> folders.</p>`, '', 'upload')}
+
+${step('Put the connection codes into config.js', `<ol>
+  <li>In the repository, click <span class="file">config.js</span>, then the pencil icon ✏️ at the top right of the file.</li>
+  <li>Replace the web address after <code>SUPABASE_URL:</code> with the Project URL from step ${nums.codes}.</li>
+  <li>Replace the long code after <code>SUPABASE_ANON_KEY:</code> with the anon key from step ${nums.codes}.</li>
+  <li>Keep the single quotes around both. They should look like this:<br>
+    <code>SUPABASE_URL: 'https://abcdefgh.supabase.co',</code><br><code>SUPABASE_ANON_KEY: 'eyJhbGciOi…',</code></li>
+  <li>Click <b>Commit changes</b>, then <b>Commit changes</b> again in the pop-up.</li></ol>`, `Skip this if you kept the same Supabase project (you skipped step ${nums.codes}).`, 'config')}
+
+${step('Turn the website on', `<ol>
+  <li>In the repository, click <b>Settings</b> (top menu) → <b>Pages</b> (left menu).</li>
+  <li>Under <b>Build and deployment</b>, set <b>Source</b> to <b>Deploy from a branch</b>.</li>
+  <li>Set <b>Branch</b> to <b>main</b> and the folder to <b>/ (root)</b>, then click <b>Save</b>.</li>
+  <li>Wait 1 to 2 minutes and refresh the page. The top will say <b>Your site is live at…</b></li></ol>
+  ${domain ? '' : `<p class="ok">That address is the website. With the username and repository above it will be <code>${e(pagesUrl)}</code>.</p>`}`,
+  'Skip this if the repository already existed and the Pages page already says “Your site is live at…”.', 'pages')}
+
+<h2>Part 3: The web address <small>${domain ? `pointing ${e(domain)} at the website` : 'the free GitHub address'}</small></h2>
+${domain ? `
+${step('Connect the domain in GitHub', `<ol>
+  <li>In the repository, go to <b>Settings</b> → <b>Pages</b>.</li>
+  <li>Under <b>Custom domain</b>, type <code>${e(domain)}</code> and click <b>Save</b>.</li>
+  <li>GitHub will start a “DNS check”. It will only succeed after the next step is done, so carry on.</li></ol>`, 'Skip Part 3 completely if the same GitHub account and repository are still in use and the domain still opens the site.', 'ghdomain')}
+
+${step(`Point the domain at GitHub (at ${e(D.registrar || 'your domain company')})`, dnsBlock(domain, false), '', 'dns')}
+
+${step('Wait, then switch on the padlock (HTTPS)', `<ol>
+  <li>Changes to a domain can take anywhere from a few minutes to 24 hours to work everywhere. Usually it's under an hour.</li>
+  <li>Go back to GitHub → <b>Settings</b> → <b>Pages</b> and refresh. When it says the DNS check was successful, tick <b>Enforce HTTPS</b>.</li>
+  <li>If <b>Enforce HTTPS</b> is greyed out, GitHub is still preparing the security certificate. Come back in a few hours and tick it then.</li></ol>
+  <p class="ok">When <code>https://${e(domain)}</code> opens the tools page with a padlock in the address bar, this part is done.</p>`, '', 'https')}
+` : `
+<div class="card"><p style="margin:0">This site doesn't use its own domain. Its address is <code>${e(finalUrl)}</code>. If the site was rebuilt under a different GitHub username or repository name, the address changes to match. Use the new address in step ${n + 1} and let your visitors know. To add your own domain later, see <b>Appendix: adding your own domain</b> at the end.</p></div>`}
+
+<h2>Part 4: Connect everything and test</h2>
+
+${step('Tell Supabase the website address', `<p>This makes the “email me a sign-in link” button send visitors back to the right place.</p><ol>
+  <li>In Supabase, click the padlock icon (<b>Authentication</b>) → <b>URL Configuration</b>.</li>
+  <li>In <b>Site URL</b>, enter <code>${e(finalUrl)}</code> and click <b>Save</b>.</li>
+  <li>Under <b>Redirect URLs</b>, click <b>Add URL</b> and enter <code>${e(finalUrl)}**</code> (the address followed by two stars). The stars cover every tool's page. Save.</li></ol>`, '', 'siteurl')}
+
+${step('Test everything', `<ol>
+  <li>Wait about 2 minutes after the last GitHub change.</li>
+  <li>Open <code>${e(finalUrl)}</code>. The tools page should list your tools.</li>
+  ${i.tools.map(t => `<li>Open <code>${e(finalUrl + t.path)}</code> and check <b>${e(t.name)}</b> works.</li>`).join('')}
+  <li>Open <code>${e(finalUrl)}admin/</code> and sign in with the admin email and password. Use the dropdown at the top to open each tool's admin and check its content came back.</li>
+  <li>On the roadmap, click <b>Sign In</b>, enter your own email, and click the link in the email to make sure sign-in emails work.</li></ol>
+  <p class="ok">If all of that works, the rebuild is done.</p>`)}
+
+<h2>Part 5: Sign-in emails</h2>
+${D.smtp_provider ? step(`Reconnect ${e(D.smtp_provider)}`, `<p>The site was set up to send its sign-in emails through <b>${e(D.smtp_provider)}</b>.</p><ol>
+  <li>Sign in to ${e(D.smtp_provider)} and find its <b>SMTP</b> settings. You need the <b>host</b>, <b>port</b>, <b>username</b> and <b>password</b> (sometimes called an API key), plus the sender email address.</li>
+  <li>In Supabase: <b>Authentication</b> → <b>Emails</b> → <b>SMTP Settings</b>. Turn on custom SMTP, fill in those details, and click <b>Save</b>.</li>
+  <li>Test it by signing in on the main site with your own email.</li></ol>`, 'Skip this if you kept the same Supabase project; the email settings are still there.')
+  : `<div class="card"><p style="margin:0">Supabase sends the sign-in emails itself. That's fine for testing, but it only sends a few emails per hour. If lots of visitors will be signing in, set up an email service (for example Resend or Brevo) under <b>Authentication</b> → <b>Emails</b> → <b>SMTP Settings</b>.</p></div>`}
+
+<h2>Part 6: Keeping it running</h2>
+<div class="card"><ul>
+  <li><b>Supabase pauses free projects that nobody uses for about a week.</b> If the tools stop loading (for example the roadmap stuck on “Syncing Roadmap…”), sign in to Supabase. If the project says it's paused, click <b>Restore project</b> and wait a few minutes. Nothing is lost.</li>
+  ${domain ? `<li><b>The domain must be renewed every year</b> at ${e(D.registrar || 'the domain company')}. Turn on <b>auto-renew</b> there, and keep the payment card up to date. If it lapses, the address stops working and someone else could buy it.</li>` : ''}
+  <li><b>Visitor accounts don't move to a new Supabase project.</b> If you made a new project, visitors sign in again with their email link and anything saved to their account starts fresh.${i.usersIncluded ? ' <span class="file">backup/accounts.csv</span> lists who had accounts.' : ''}</li>
+  <li><b>Adding another admin:</b> main admin → <b>Admins</b> tab, then create their login as in step ${nums.admin}.</li>
+  <li><b>Make a fresh kit after big changes:</b> main admin → <b>Backup</b> → <b>Download complete kit</b>. It always includes every tool. Keep copies in two places, for example Google Drive and a USB stick.</li></ul></div>
+
+<h2>If something goes wrong</h2>
+<div class="card"><table>
+  <tr><th>What you see</th><th>What to do</th></tr>
+  <tr><td>Tools won't load (for example “Syncing Roadmap…” forever)</td><td>First check the Supabase project isn't paused (Part 6). If not, the codes in <span class="file">config.js</span> are wrong or missing: redo step ${nums.config}, wait 2 minutes, refresh.</td></tr>
+  <tr><td>One tool works but another shows “Syncing…” forever or a blank card</td><td>Check <span class="file">config.js</span> is in the top level of the repository (not inside a folder), and that 1-database-setup.sql ran without errors.</td></tr>
+  <tr><td>A “404” page instead of the site</td><td>GitHub Pages isn't switched on or hasn't finished, or files were uploaded inside a folder instead of loose. Check step ${nums.upload} and step ${nums.pages}, then wait 5 minutes.</td></tr>
+  ${domain ? `<tr><td>The domain doesn't open the site, or GitHub says the DNS check failed</td><td>Check the records in step ${nums.dns} exactly match, and that old records for the same name were removed. Then wait: it can take up to 24 hours.</td></tr>
+  <tr><td>Browser says “Not secure” on the domain</td><td>Enforce HTTPS isn't ticked yet (step ${nums.https}). Wait a few hours and tick it.</td></tr>` : ''}
+  <tr><td>Admin says “… isn't an admin”</td><td>The email in step ${nums.setup} doesn't match the login. In the SQL Editor run <code>insert into admins (email) values ('your@email.com');</code> with the login email.</td></tr>
+  <tr><td>“Invalid login credentials”</td><td>Wrong password, or the user wasn't created or confirmed. Redo step ${nums.admin} (you can delete the user and make it again).</td></tr>
+  <tr><td>Sign-in email link opens the wrong page, or says the address isn't allowed</td><td>Redo step ${nums.siteurl}, including the <code>**</code> at the end of the redirect address.</td></tr>
+  <tr><td>Error when running 2-your-content.sql</td><td>Run 1-database-setup.sql first (step ${nums.setup}), then try again.</td></tr>
+  <tr><td>Changes don't show on the site</td><td>Wait 2 minutes, then press <b>Ctrl+F5</b> (Cmd+Shift+R on a Mac) to reload without the old copy.</td></tr>
+  <tr><td>Anything else</td><td>Take a screenshot and note which step number you're on${D.helper ? `, then contact: <b>${e(D.helper)}</b>` : ''}.</td></tr>
+</table></div>
+
+${domain ? '' : `<h2>Appendix: adding your own domain <small>optional, only if you buy one</small></h2>
+<div class="card"><p style="margin-top:0">Replace <code>tools.yourbusiness.ca</code> below with your real domain.</p><ol>
+  <li>In GitHub: repository → <b>Settings</b> → <b>Pages</b> → <b>Custom domain</b> → type the domain → <b>Save</b>.</li>
+  <li>At the company you bought the domain from:</li></ol>
+  ${dnsBlock('tools.yourbusiness.ca', true)}
+  <ol start="3"><li>Wait up to 24 hours, then tick <b>Enforce HTTPS</b> in GitHub Pages.</li>
+  <li>Update <b>Site URL</b> and <b>Redirect URLs</b> in Supabase (Part 4) to <code>https://</code> plus your domain.</li></ol>
+  <p class="ok" style="margin-bottom:0">For a main domain like <code>yourbusiness.ca</code> (with nothing before it), use four <b>A</b> records with Name <code>@</code> pointing to <code>185.199.108.153</code>, <code>185.199.109.153</code>, <code>185.199.110.153</code> and <code>185.199.111.153</code>, plus a <b>CNAME</b> record with Name <code>www</code> pointing to <code>${e(ghUser)}.github.io</code>.</p></div>`}
+
+</main></body></html>`;
+}
+
+
+/* ---------- Build + download ---------- */
+$('kit-btn').onclick = async () => {
+  const btn = $('kit-btn'), status = $('kit-status');
+  const say = (t, cls) => { status.textContent = t; status.className = 'status' + (cls ? ' ' + cls : ''); };
+  const details = await askKitDetails();
+  if (!details) return;
+  btn.disabled = true; btn.textContent = 'Building kit…';
+  try {
+    say('Loading the zip tool…');
+    await EOCO.loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+
+    say('Collecting every tool’s content…');
+    const all = await EOCO.exportAll();
+    if (all.errors.length) throw new Error(all.errors.join('; '));
+    const adminEmail = (EOCO.session && EOCO.session.user.email) || 'you@example.com';
+
+    // website files: the whole GitHub repository if we can
+    const repo = { included: false, count: 0, error: '' };
+    let repoFiles = [];
+    if (details.github_user && details.github_repo) {
+      try {
+        say('Copying website files from GitHub…');
+        const r = await fetchRepoFiles(details.github_user, details.github_repo, say);
+        repoFiles = r.files; repo.included = true; repo.count = r.files.length;
+        const cname = r.files.find(f => f.path === 'CNAME');
+        if (cname && !details.custom_domain) details.custom_domain = cleanDomain(new TextDecoder().decode(cname.data).split('\n')[0]);
+      } catch (err) { repo.error = err.message; }
+    } else repo.error = 'no GitHub username and repository were given';
+
+    // the files every rebuild needs, taken from the live site if GitHub didn't work
+    const needed = ['index.html', 'config.js', 'platform/tools.js', 'platform/admin-common.js', 'platform/admin.css', 'admin/index.html', EOCO.platform.setupSql]
+      .concat(...TOOLS.map(t => [t.path + 'index.html', t.admin, t.setupSql]));
+    const have = p => repoFiles.some(f => f.path === p);
+    say('Collecting website files…');
+    const live = {};
+    await Promise.all(needed.map(async p => { live[p] = await EOCO.fetchText(EOCO.url(p)); }));
+    const missing = needed.filter(p => !have(p) && live[p] == null);
+    const fileText = p => { const f = repoFiles.find(x => x.path === p); return f ? new TextDecoder().decode(f.data) : live[p]; };
+
+    // database setup: the platform first, then each tool in the order of the tool list
+    const setupParts = [EOCO.platform.setupSql, ...TOOLS.map(t => t.setupSql)].map(p => ({ p, sql: fileText(p) }));
+    const noSetup = setupParts.filter(x => x.sql == null).map(x => x.p);
+    if (noSetup.length) throw new Error(`couldn't read ${noSetup.join(', ')}`);
+    const setupSQL = `-- =====================================================================
+-- EOCO Tools — 1. DATABASE SETUP (every tool)
+-- Run this FIRST, then 2-your-content.sql.
+--   Supabase → SQL Editor → New query → paste all → Run
+-- Safe to run more than once.
+-- =====================================================================
+
+` + setupParts.map(x => `-- ##### ${x.p} #####\n` + x.sql).join('\n\n')
+      .replace("values ('you@example.com')", `values ('${adminEmail.replace(/'/g, "''")}')`);
+
+    let users = [];
+    { const { data } = await sb.rpc('admin_user_list'); users = data || []; }
+
+    say('Packing the zip…');
+    const now = new Date(), day = EOCO.day(now);
+    const stamp = now.toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' });
+    const backupName = `eoco-tools-full-backup-${day}.json`;
+    const zip = new JSZip();
+    zip.file('supabase/1-database-setup.sql', setupSQL);
+    zip.file('supabase/2-your-content.sql', EOCO.contentSQL(all, stamp));
+    repoFiles.forEach(f => zip.file('website/' + f.path, f.data));
+    needed.forEach(p => { if (!have(p) && live[p] != null) zip.file('website/' + p, live[p]); });
+    zip.file('backup/' + backupName, JSON.stringify(all, null, 2));
+    Object.entries(all.platform.tables).forEach(([tb, rows]) => { if (rows.length) zip.file(`backup/platform/${tb}.csv`, EOCO.toCSV(rows)); });
+    TOOLS.forEach(t => Object.entries((all.tools[t.id] || {}).tables || {}).forEach(([tb, rows]) => { if (rows.length) zip.file(`backup/${t.id}/${tb}.csv`, EOCO.toCSV(rows)); }));
+    if (users.length) zip.file('backup/accounts.csv', EOCO.toCSV(users, ['email', 'created_at', 'last_sign_in_at']));
+
+    const toolsInfo = TOOLS.map(t => ({ name: t.name, icon: t.icon, path: t.path,
+      tables: (t.backup || []).map(def => ({ table: def.table, label: def.label || def.table, shared: !!def.where,
+        count: (((all.tools[t.id] || {}).tables || {})[def.table] || []).length })) }));
+    zip.file('START-HERE.html', buildGuide({
+      madeOn: stamp, adminEmail, backupName, missing, repo, details, usersIncluded: users.length > 0,
+      supabaseUrl: EOCO.cfg.SUPABASE_URL || '', tools: toolsInfo,
+      adminCount: (all.platform.tables.admins || []).length
+    }));
+
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    EOCO.downloadFile(`eoco-tools-kit-${day}.zip`, blob);
+    const warnings = [];
+    if (!repo.included) warnings.push(`the full GitHub copy didn't work (${repo.error}), so only the main website files are included`);
+    if (missing.length) warnings.push(`${missing.join(', ')} couldn't be included`);
+    say(warnings.length ? `Downloaded, but ${warnings.join('; ')}. The guide explains what to do.` : `Downloaded: ${plural(TOOLS.length, 'tool')}, all website files and the guide. Keep it somewhere safe and private.`, warnings.length ? 'error' : 'ok');
+    toast('Complete site kit downloaded');
+  } catch (err) {
+    say(`Couldn't build the kit: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Download complete kit';
+  }
+};
+
+</script>
+</body>
+</html>
